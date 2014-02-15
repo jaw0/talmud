@@ -1,0 +1,8 @@
+<DIV CLASS=SUBNAV>
+<A HREF="add-tkt">Open New</A> &nbsp;&nbsp;&nbsp;
+<A HREF="list-tkts">List</A> &nbsp;&nbsp;&nbsp;
+<A HREF="list-sections">Sections</A> &nbsp;&nbsp;&nbsp;
+
+
+</DIV>
+% $m->call_next();

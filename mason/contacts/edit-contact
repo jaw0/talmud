@@ -1,0 +1,85 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-08 22:51 (EDT)
+%# Function: edit a contact data
+%#
+%# $Id: edit-contact,v 1.9 2010/01/16 03:21:54 jaw Exp $
+
+<DIV CLASS=CONTEXT>Edit Contact &rarr; <% $name %></DIV>
+<P>
+
+<FORM METHOD=POST ACTION="edit-contact-1">
+<INPUT TYPE=HIDDEN NAME=oid VALUE="<% $oid %>">
+<TABLE>
+    <&/sys/form, dfl => $dfl, err => $err, form => $m->comp('SELF:FORM', db => $db) &>
+
+% while( my $r = $cd->fetchrow_hashref() ){
+
+    <tr><td><% $r->{field} %></td>
+	<TD><INPUT TYPE=TEXT SIZE=32 MAXLENGTH=128 NAME="cv_<% $r->{data_id} %>" VALUE="<% $r->{value} %>"></TD>
+	<TD><INPUT TYPE=TEXT SIZE=32 MAXLENGTH=128 NAME="ca_<% $r->{data_id} %>" VALUE="<% $r->{availability} %>"></TD>
+    </tr>
+% }
+
+<TR><TD>Add Field:<INPUT TYPE=TEXT NAME=newf SIZE=16></TD>
+    <TD><INPUT TYPE=TEXT NAME=newv SIZE=32></TD>
+    <TD>Availability:<INPUT TYPE=TEXT NAME=newa SIZE=16></TD></TR>
+
+<TR><TD>&nbsp;</TD><TD><INPUT TYPE=SUBMIT NAME=Submit VALUE=Submit></TD></TR>
+</TABLE>
+</FORM>
+%################################################################
+<%attr>
+    title   => 'Edit Contact'
+    acl	    => 'user :w'
+</%attr>
+%################################################################
+<%args>
+    $oid
+    $dfl    => undef
+    $err    => undef
+</%args>
+%################################################################
+<%init>
+
+    my $db = Talmud::db();
+
+    # get name
+    my( $name, $email, $catg, $pub ) = $db->select_1array(
+	"select realname, email, category, public_p from mi_person inner join mi_party on ".
+	" (party_id = person_id) where person_id = ?",
+	$oid );
+
+    my $cd = $db->do(
+	"select data_id, field, value, availability from mi_contact_data where contact_id = ?",
+	$oid );
+
+
+    $dfl->{name}  ||= $name;
+    $dfl->{email} ||= $email;
+    $dfl->{catg}  ||= $catg;
+    $dfl->{pubp}  ||= $pub ? 'public' : 'private';
+
+
+</%init>
+%################################################################
+<%method FORM>
+<%args>
+    $db	=> undef
+</%args>
+<%perl>
+
+    my @catg;
+    @catg = $db->select_column("select category from mi_person_category order by category") if $db;
+
+    return [
+{ name => 'name',    label => 'Name',     type => 'text', size => 32, maxlen => 128 },
+{ name => 'email',   label => 'Email',    type => 'text', size => 32, maxlen => 128, opt => 1 },
+{ name => 'catg',    label => 'Category', type => 'menu', values => [@catg] },
+{ name => 'pubp',    label => 'Public',   type => 'menu', values => ['public', 'private'] },
+
+    ];
+
+</%perl>
+</%method>

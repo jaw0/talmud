@@ -1,0 +1,46 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Created: 2003-Nov-05 23:26 (EST)
+%# Function: edit config params
+%#
+%# $Id: edit-config,v 1.5 2010/01/16 03:21:50 jaw Exp $
+
+<DIV CLASS=CONTEXT><A HREF="/">Home</A> &rarr; Edit Config</DIV>
+<P>
+
+<FORM METHOD=POST ACTION="edit-config-1">
+<TABLE>
+    <&/sys/form, dfl => $dfl, err => $err, form => $f &>
+</TABLE>
+</FORM>
+<P><I>Note: it may take several minutes for changes to take effect</I></P>
+
+%################################################################
+<%attr>
+    title => 'Edit Config'
+    acl   => 'secoper'
+</%attr>
+%################################################################
+<%args>
+    $dfl => undef
+    $err => undef
+</%args>
+%################################################################
+<%init>
+    my $db = Talmud::db();
+
+    my $f;
+    my $st = $db->do('select param, descr, type, value from mi_sys_config order by param');
+    while( my $r = $st->fetchrow_arrayref() ){
+        my($p, $d, $t, $v) = @$r;
+
+	# RSN - better type handling
+        push @$f, { name => $p, label => $p, type => $t, size => 32, maxlen => 256, hint => $d };
+        $dfl->{$p} ||= $v;
+    }
+
+    push @$f, { type => 'submit',   submit => 'Submit' };
+
+
+</%init>

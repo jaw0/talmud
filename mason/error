@@ -1,0 +1,23 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-May-05 15:37 (EDT)
+%# Function: error page
+%#
+%# $Id: error,v 1.3 2003/11/12 23:57:11 jaw Exp $
+%#
+<HTML><HEAD>
+<TITLE>ERROR</TITLE>
+</HEAD><BODY>
+<& /sys/error.mas, %ARGS &>
+</BODY>
+</HTML>
+% $m->abort();
+%################################################################
+<%args>
+	$msg
+</%args>
+%################################################################
+<%flags>
+	inherit => undef
+</%flags>

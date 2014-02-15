@@ -1,0 +1,62 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-08 22:44 (EDT)
+%# Function: process add contact form and redirect
+%#
+%# $Id: add-contact-1,v 1.10 2010/01/16 03:21:54 jaw Exp $
+
+<%attr>
+    title   => 'Add Contact'
+    acl	    => 'user'
+</%attr>
+%################################################################
+<%args>
+    $name	=> undef
+    $email	=> undef
+    $catg	=> undef
+    $pubp	=> undef
+</%args>
+%################################################################
+<%init>
+
+    my $s   = Talmud::sess();
+    my $db  = Talmud::db();
+    my $uid = Talmud::g_obj_next_id($db);
+
+    my $f   = $m->comp('add-contact:FORM');
+    my $err = $m->comp('/sys/form:validate', form => $f, args => \%ARGS);
+    if( $err ){
+	return $m->comp( 'add-contact', err => $err, dfl => \%ARGS );
+    }
+
+    eval{
+	$db->start();
+	Talmud::create_object($db, 'users/person', $uid);
+
+	$db->insert_hash('mi_party', {
+	    party_id	=> $uid,
+	    email	=> ($email || undef),
+	} );
+
+	$db->insert_hash('mi_person', {
+	    person_id   => $uid,
+	    realname    => ($name || undef),
+	    category	=> $catg,
+	    public_p    => ($pubp eq 'public' ? 'true' : 'false'),
+	} );
+
+	$db->commit();
+    };
+    if( $@ ){
+	 my $emsg = $@;
+	 $emsg = $db->error_sanitize( $emsg );
+	 $db->rollback();
+	 $m->comp('/sys/error.mas', msg => $emsg);
+	 return $m->comp( 'add-contact', dfl => \%ARGS );
+    }
+    
+    # view parent doc
+    $m->comp('/sys/redirect.mas', where => "/contacts/view-contact?oid=$uid" );
+
+</%init>

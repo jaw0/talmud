@@ -1,0 +1,88 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-09 09:44 (EDT)
+%# Function: view one piece of eqmt
+%#
+%# $Id: view-eqmt,v 1.15 2010/08/29 14:45:01 jaw Exp $
+
+%# RSN - other types of related info - owner,
+
+<DIV CLASS=CONTEXT>Equipment &rarr; View &rarr; <% $name %></DIV>
+<P>
+
+<TABLE><TR><TD>
+
+<TABLE>
+<% $data |n%>
+</TABLE>
+
+</TD>
+<TD VALIGN=TOP WIDTH=1 CLASS=VERTLINE><BR></TD>
+<TD VALIGN=TOP WIDTH="20%" CLASS="RELATED-COL">
+
+<& /bkmk/widget.mas, oid => $oid &>
+<A HREF="edit-eqmt?oid=<% $oid %>" TITLE="Edit" class="logo-button"><&/sys/sym:edit&></A>
+<A HREF="/generic/add-comment?oid=<% $oid %>;fnc=/eqmt/view-eqmt" TITLE="add comment" class="logo-button"><&/sys/sym:comment&></A>
+
+<BR><BR>
+<B>Related Items</B><BR>
+<& /generic/related.mas, oid => $oid &>
+
+<TD VALIGN=TOP WIDTH=1 CLASS=VERTLINE><BR></TD>
+
+<TD VALIGN=TOP CLASS="COMMENTS-COL">
+<B>Comments</B><BR>
+<& /generic/comments.mas, oid => $oid, fnc => '/eqmt/view-eqmt', wide => 0 &>
+
+</TD></TR>
+</TABLE>
+
+%################################################################
+<%attr>
+	title	=> 'View Equipment'
+	acl	=> 'staff :r'
+</%attr>
+%################################################################
+<%args>
+	$oid
+</%args>
+%################################################################
+<%init>
+	my $db = Talmud::db();
+
+	my $stmt = <<EOSQL;
+select *, mi_hw_type.name AS hw_type_name,
+    mi_object_ahref( fac_id )      AS fac_id,
+    mi_object_ahref( console_dev ) AS console_dev,
+    mi_object_ahref( power_dev )   AS power_dev,
+--    mi_object_ahref( switch_dev )  AS switch_dev,
+    to_char(installed, 'YYYY-MM-DD') AS installed
+  from mi_eqmt
+    INNER JOIN mi_hw_type using (hw_type_id)
+  where eqmt_id = ?
+EOSQL
+	;
+	my $d = $db->select_1hashref( $stmt, $oid);
+
+	my( $form, $dfl );
+
+	my $f0 = $m->comp( 'add-eqmt:form',  view => 1 );
+	my $f1 = $m->comp('add-eqmt-1:form', view => 1 );
+	$form = $f0;
+
+	$dfl = $m->comp('/sys/form:dfl_from_sql',
+		form => $form,
+		data => $d,
+		sqlcol => 'sqlname'
+	);
+
+	my $name = $d->{fqdn};
+
+	my $data = $m->scomp( '/sys/form',
+		form => $form,
+		dfl  => $dfl,
+		ro   => 1,
+		skipnull => 1,
+	);
+</%init>

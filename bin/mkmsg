@@ -1,0 +1,29 @@
+#!/usr/local/bin/perl
+# -*- perl -*-
+
+# Copyright (c) 2003 by Jeff Weisberg
+# Author: Jeff Weisberg <jaw @ tcp4me.com>
+# Date: 2003-Oct-12 10:38 (EDT)
+# Function: 
+#
+# $Id: mkmsg,v 1.2 2010/01/18 03:15:26 jaw Exp $
+
+use MIME::Entity;
+
+$top = MIME::Entity->build(From    => '"Bob Smith" <bob@example.com>',
+			   To      => 'foo@example.com',
+			   Subject => "[UNK #1018] Re: foo and bar",
+			   Type     => "multipart/mixed",
+			   );
+
+$top->attach( Type => 'text/plain',
+	      Data => "test message. blah. blah. blah.\nyadda. yadda. yadda.",
+	      );
+
+$top->attach( Type => 'image/jpeg',
+	      Path => '/home/athena/jaw/tmp/img/metrop-workers.jpg',
+	      # Data => "gif gif gif gif\ngif gif gif gif\ngif gif gif gif\ngif gif gif gif\ngif gif gif gif\n",
+	      );
+
+$top->print;
+

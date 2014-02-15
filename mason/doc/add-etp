@@ -1,0 +1,40 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-09 00:06 (EDT)
+%# Function: add a new document
+%#
+%# $Id: add-etp,v 1.8 2010/01/18 03:15:27 jaw Exp $
+
+<FORM METHOD=POST ACTION="add-etp-1">
+<INPUT TYPE=HIDDEN NAME=oid VALUE="<% $oid %>">
+<TABLE>
+  <&/sys/form, dfl => $dfl, err => $err, form => $m->comp('SELF:FORM') &>
+</TABLE>
+</FORM>
+%################################################################
+<%attr>
+    title => 'Add Documentation'
+    acl   => 'staff :c'
+</%attr>
+%################################################################
+<%args>
+    $oid => undef
+    $dfl => undef
+    $err => undef
+</%args>
+%################################################################
+<%method FORM>
+<%perl>
+
+    return [
+{ name => 'summary', label => 'Title',    type => 'text', size => 64, maxlen => 128 },
+{ name => 'content', label => 'Document', type => 'box',  ht => 15, wid => 62 },
+{ name => 'format',  label => 'Format',   type => 'menu', values => ['text', 'html', 'wiki'], default => 'text' },
+{ name => 'sortkey', label => 'Sort Key', type => 'text', size => 32, maxlen => 32, opt => 1, },
+# ...
+{ type => 'submit',   submit => 'Submit' },
+    ];
+
+</%perl>
+</%method>

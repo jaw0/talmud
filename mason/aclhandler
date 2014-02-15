@@ -1,0 +1,29 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-10 09:53 (EDT)
+%# Function: check access permissions
+%#
+%# $Id: aclhandler,v 1.4 2010/01/16 03:21:49 jaw Exp $
+
+<%flags>
+    inherit		=> undef
+</%flags>
+%################################################################
+<%init>
+    my $s  = Talmud::sess();
+    my $db = Talmud::db();
+    my $user = $s->{auth}{user} || 'not logged in';
+
+    # QQQ - check logged in?
+    $s->{auth}{uid} || $m->comp( '/sys/redirect.mas', where => '/login' );
+
+    my $eck = $m->comp( '/sys/chkacl.mas',
+	db	=> $db,
+	acl	=> $m->request_comp->attr('acl'),
+	%ARGS );
+
+    $m->comp( '/error', msg => $eck ) if $eck;
+
+    $m->call_next();
+</%init>

@@ -1,0 +1,158 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-09 11:15 (EDT)
+%# Function: view info about specified user
+%#
+%# $Id: view-user,v 1.13 2010/01/16 03:22:18 jaw Exp $
+
+<DIV CLASS=CONTEXT><A HREF="/">Home</A> &rarr; <A HREf="list-users">Users</A> &rarr; <% $real %></DIV>
+<P>
+
+% if( $photo ){
+<IMG SRC="<% $photo %>" ALIGN=RIGHT>
+%}
+
+<H3><% $real %></H3><P>
+<TABLE CLASS="USER-DATA">
+% if( $nick ){
+<TR><TD>aka.</TD><TD COLSPAN=2><% $nick %></TD></TR>
+% }
+
+<TR><TD>email</TD><TD COLSPAN=2><% $email %></TD></TR>
+
+% if( $home ){
+<TR><TD>homepage</TD><TD COLSPAN=2><A HREF="<% $home %>"><% $home %></A></TD></TR>
+% }
+
+<TR><TD COLSPAN=3>&nbsp;</TD></TR>
+
+% while( my $r = $cd->fetchrow_arrayref() ){
+%	my($f,$v,$a) = @$r;
+<TR><TD><% $f %></TD><TD><% $v %></TD><TD><I><% $a %></I></TD></TR>
+% }
+
+% if( $bio ){
+<TR><TD COLSPAN=3>&nbsp;<BR><% $bio %></TD></TR>
+% }
+
+</TABLE>
+<BR CLEAR=ALL>
+
+<TABLE CLASS="USER-BOTTOM">
+<TR><TD VALIGN=TOP CLASS="USER-CONTRIB">
+
+<B>Recently Contributed Content</B><BR>
+<TABLE>
+<%perl>
+my %distinct;
+while( my $r = $recent->fetchrow_hashref() ){
+	next if $distinct{ $r->{content_id} }++;
+	$m->comp('SELF:summary', r => $r);
+}
+</%perl>
+</TABLE>
+</TD>
+
+<TD VALIGN=TOP WIDTH=1 CLASS=VERTLINE><BR></TD>
+<TD VALIGN=TOP WIDTH="20%" CLASS="RELATED-COL">
+
+<B>Related Items</B><BR>
+<& /generic/related.mas, oid => $oid &>
+<& /tkt/byuser.mas, oid => $oid, status => 'open' &>
+
+<TD VALIGN=TOP WIDTH=1 CLASS=VERTLINE><BR></TD>
+<TD VALIGN=TOP CLASS="COMMENT-COL">
+
+<B>Comments</B><BR>
+<& /generic/comments.mas, oid => $oid, fnc => '/users/view-user', wide => 0 &>
+
+</TD></TR>
+</TABLE>
+
+% if( $admin_p ){
+<P><HR>
+<TABLE CLASS="USER-ADMIN-BUTTONS"><TR>
+<TD><& /sys/widgets:button, label => 'Edit User',   url => "edit-user?oid=$oid" &></TD>
+<TD><& /sys/widgets:button, label => 'Edit Passwd', url => "edit-passwd?oid=$oid" &></TD>
+<TD><& /sys/widgets:button, label => 'Edit Groups', url => "edit-groups?oid=$oid" &></TD>
+</TR></TABLE>
+%}
+
+%################################################################
+<%attr>
+	title	=> 'View User'
+	acl	=> 'user'
+</%attr>
+%################################################################
+<%args>
+	$oid	=> undef
+</%args>
+%################################################################
+<%init>
+	my $s  = Talmud::sess();
+	my $db = Talmud::db();
+
+	$oid ||= $s->{auth}{uid};
+
+	# get general data
+	my( $photo, $home, $real, $nick, $email, $bio ) =
+	    $db->select_1array($m->scomp('SELF:GENERAL_DATA'),
+		$oid, $oid, $oid );
+
+	# get contact data
+	my $cd = $db->do($m->scomp('SELF:CONTACT_DATA'),
+		$oid );
+
+	# get contributed content
+        my $recent = $db->do($m->scomp('SELF:CONTENT'),
+	    $oid, $oid);
+
+	# if current user has permission, display various admin features
+	my $admin_p = $s->{auth}{groups}{secadmin} || $s->{auth}{groups}{acctadmin};
+
+</%init>
+%################################################################
+%# display summary of content
+<%method summary>
+<%args>
+        $r
+</%args>
+<TR><TD><A HREF="/generic/view?oid=<% $r->{content_id} %>"><% $r->{summary} || $r->{about} %></A></TD>
+<TD><% $r->{date} %></TD></TR>
+</%method>
+%################################################################
+%# get general user data
+<%method GENERAL_DATA>
+select photo_url, url, realname, nickname, email, biography
+  from mi_user, mi_person, mi_party
+  where user_id = ? and party_id = ? and person_id = ?
+</%method>
+%################################################################
+%# get user contact data
+<%method CONTACT_DATA>
+select field, value, availability
+  from mi_contact_data
+  where contact_id = ?
+</%method>
+%################################################################
+%# get content contributed by user
+<%method CONTENT>
+select
+    summary,
+    mi_object_best(content_id)                                            AS content_id, 
+    to_char(coalesce(modified_date, created_date), 'HH24:MI DD Mon YYYY') AS date,
+    'about: ' || mi_object_name(refers_to, false)                         AS about
+
+  from mi_content
+    inner join mi_g_object ON (mi_content.content_id = mi_g_object.g_obj_id)
+    inner join mi_content_version USING (content_id)
+
+  where status = 'active'
+    and current_version_p
+    and content_type in ( 'news', 'etp', 'comment', 'forums' )		-- not tickets
+    and ( created_user = ? or modified_user = ? )
+
+  order by coalesce(modified_date, created_date) desc
+  limit 50
+</%method>

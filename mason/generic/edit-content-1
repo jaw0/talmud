@@ -1,0 +1,57 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-08 23:36 (EDT)
+%# Function: process edit comment form and redirect
+%#
+%# $Id: edit-content-1,v 1.8 2010/01/16 03:22:02 jaw Exp $
+
+<%attr>
+    title   => 'Edit Content'
+    acl	    => 'user :w'
+</%attr>
+%################################################################
+<%args>
+    $oid
+    $content
+    $summary
+    $format
+    $sortkey
+    $status
+</%args>
+%################################################################
+<%init>
+    my $s  = Talmud::sess();
+    my $db = Talmud::db();
+
+    eval {
+
+	$db->start();
+	$db->insert_hash('mi_content_version', {
+	    content_id	=> $oid,
+	    version_id  => Talmud::create_object($db, 'generic/version'),
+	    content	=> $content,
+	    summary	=> $summary,
+	} );
+
+	$db->update_hash('mi_content', {
+	    mime_type => "text/$format",
+    	    sortkey   => $sortkey,
+	    status    => $status,
+	}, ["content_id", $oid] );
+
+	Talmud::touch_object($db, $oid);
+
+	$db->commit();
+    };
+    if( $@ ){
+	my $emsg = $@;
+	$emsg = $db->error_sanitize( $emsg );
+	$db->rollback();
+	$m->comp('/sys/error.mas', msg => $emsg);
+	return $m->comp( 'edit-content', oid => $oid, dfl => \%ARGS );
+    }
+
+    $m->comp('/sys/redirect.mas', where => "/generic/view?oid=$oid");
+
+</%init>

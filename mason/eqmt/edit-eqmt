@@ -1,0 +1,58 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-09 09:27 (EDT)
+%# Function: edit eqmt
+%#
+%# $Id: edit-eqmt,v 1.10 2010/08/21 20:18:30 jaw Exp $
+
+<DIV CLASS=CONTEXT>Equipment &rarr; Edit &rarr; <% $name %></DIV>
+<P>
+
+<FORM METHOD=POST ACTION="edit-eqmt-1">
+<TABLE>
+<% $data |n%>
+</TABLE>
+<INPUT TYPE=HIDDEN NAME=oid VALUE=<% $oid %>>
+</FORM>
+%################################################################
+<%attr>
+	title	=> 'Edit Eqmt'
+	acl	=> 'staff :w'
+</%attr>
+%################################################################
+<%args>
+	$oid
+</%args>
+%################################################################
+<%init>
+	my $db = Talmud::db();
+
+	my $stmt = <<EOSQL;
+select *
+  from mi_eqmt
+  where eqmt_id = ?
+EOSQL
+	;
+	my $d = $db->select_1hashref($stmt, $oid);
+
+	my( $form, $dfl );
+
+	# re-use add-eqmt forms
+	my $f0 = $m->comp('add-eqmt:form' );
+
+	$form = $f0;
+
+	$dfl = $m->comp('/sys/form:dfl_from_sql',
+		form => $form,
+		data => $d,
+		sqlcol => 'sqlname'
+	);
+
+	my $name = $d->{fqdn};
+	my $data = $m->scomp( '/sys/form',
+		form => $form,
+		dfl  => $dfl,
+	);
+
+</%init>

@@ -1,0 +1,72 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-08 22:51 (EDT)
+%# Function: edit my contact data
+%#
+%# $Id: edit-contact,v 1.8 2010/01/16 03:22:09 jaw Exp $
+
+<DIV CLASS=CONTEXT>Edit Contact &rarr; <% $name %></DIV>
+<P>
+
+<FORM METHOD=POST ACTION="edit-contact-1">
+<TABLE>
+  <& /sys/form, dfl => $dfl, err => $err, form => $f &>
+
+% while( my $r = $cd->fetchrow_arrayref() ){
+%     my ($c, $f, $v, $a ) = @$r;
+
+    <TR><TD><% $f %></TD>
+	<TD><INPUT TYPE=TEXT SIZE=32 MAXLENGTH=128 NAME="cv_<% $c %>" VALUE="<% $v %>"></TD>
+	<TD><INPUT TYPE=TEXT SIZE=32 MAXLENGTH=128 NAME="ca_<% $c %>" VALUE="<% $a %>"></TD>
+    </TR>
+% }
+
+<TR><TD>Add Field:<INPUT TYPE=TEXT NAME=newf SIZE=16></TD>
+    <TD><INPUT TYPE=TEXT NAME=newv SIZE=32></TD>
+    <TD>Availability:<INPUT TYPE=TEXT NAME=newa SIZE=16></TD></TR>
+
+<TR><TD>&nbsp;</TD><TD><INPUT TYPE=SUBMIT NAME=Submit VALUE=Submit></TD></TR>
+</TABLE>
+</FORM>
+%################################################################
+<%attr>
+    title   => 'Edit Contact'
+    acl	    => 'user'
+</%attr>
+%################################################################
+<%args>
+    $dfl	=> undef
+    $err	=> undef
+</%args>
+%################################################################
+<%init>
+    my $s  = Talmud::sess();
+    my $db = Talmud::db();
+    my $q  = $s->{auth}{uid};
+
+    # get name
+    my( $name, $catg, $pub ) = $db->select_1array(
+	"select realname, category, public_p from mi_person where person_id = ?",
+	$q);
+
+
+    my @catg = $db->select_column(
+	"select category from mi_person_category order by category" );
+
+    my $cd = $db->do(
+	"select data_id, field, value, availability from mi_contact_data where contact_id = ?",
+	$q );
+
+    # main form
+    my $f = [
+# QQQ - should people be able to modify their category?
+# { name => 'catg',    label => 'Category', type => 'menu', values => [@catg] },
+{ name => 'pubp',    label => 'Public',   type => 'menu', values => ['public', 'private'] },
+
+    ];
+
+    $dfl->{catg}  ||= $catg;
+    $dfl->{pubp}  ||= $pub ? 'public' : 'private';
+
+</%init>

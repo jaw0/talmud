@@ -1,0 +1,188 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-09 11:58 (EDT)
+%# Function: update ticket and redirect
+%#
+%# $Id: update-tkt,v 1.15 2010/08/21 20:18:31 jaw Exp $
+
+<%attr>
+    title   => 'Update Ticket'
+    acl	    => 'staff :w'
+</%attr>
+%################################################################
+<%args>
+    $oid
+    $file    => undef
+</%args>
+%################################################################
+<%once>
+
+    my %TT = (
+	subject => { table => 'task',   col => 'summary'  },
+	group	=> { table => 'g_object',col => 'refers_to',  select => 'section_id from mi_tkt_section where name = ?' },
+	prio	=> { table => 'ticket', col => 'priority_id', select => 'priority_id from mi_tkt_priority where name = ?'},
+	seve	=> { table => 'ticket', col => 'severity_id', select => 'severity_id from mi_tkt_severity where name = ?'},
+	status	=> { table => 'ticket', col => 'status_id',   select => 'status_id from mi_tkt_status where name = ?' },
+	owner	=> { table => 'task',   col => 'owner',
+		     select => 'user_id from mi_site_user where ? in (nickname, realname)'    },
+	deadline=> { table => 'task',   col => 'deadline' },
+    );
+</%once>
+%################################################################
+<%init>
+    my $s  = Talmud::sess();
+    my $db = Talmud::db();
+
+    my( $det, @det, %data );
+
+    # fix up dates
+    if( $ARGS{deadline_y} ){
+	$ARGS{deadline} = "$ARGS{deadline_y}-$ARGS{deadline_m}-$ARGS{deadline_d}";
+    }
+
+    $ARGS{status} = 'active' if $ARGS{content};
+
+    # did any ticket params change?
+    foreach my $n (keys %TT){
+	my $o = "old_$n";
+	next if $ARGS{$n} eq $ARGS{$o};
+
+	push @det, "$n " . ($ARGS{$o} ? "from $ARGS{$o} " : '') .
+		"to $ARGS{$n}";
+
+	my $tt = $TT{$n};
+	my $value;
+
+	if( $tt->{select} ){
+	    $value = $db->select_scalar( 'select ' . $tt->{select}, $ARGS{$n} );
+	}else{
+	    $value = $ARGS{$n};
+	}
+
+	$data{ $tt->{table} }{ $tt->{col} } = $value;
+    }
+
+    if( my $l = $ARGS{labor} ){
+	if( $l =~ /(\d+):(\d+)/ ){
+	    # convert HH:MM => MM
+	    $l = $ARGS{labor} = $2 + 60 * $1;
+	}
+	push @det, "$l of labor";
+    }
+
+    if( @det ){
+	$det = "changed ". join(', ', @det);
+    }
+
+    $det .= "\nadded new content" if $ARGS{content};
+    $det .= "\nuploaded a file"   if $file;
+
+    eval {
+	my( $eid, $did, $format );
+
+	# update ticket
+	$db->start();
+
+	if( $det ){
+	    $db->update_hash('mi_ticket',  $data{ticket},    [tkt_id   => $oid] ) if $data{ticket};
+	    $db->update_hash('mi_task',    $data{task},      [task_id  => $oid] ) if $data{task};
+	    $db->update_hash('mi_g_object',$data{g_object},  [g_obj_id => $oid] ) if $data{g_object};
+	}
+
+	if( $det || $ARGS{content} || $file ){
+	    Talmud::touch_object( $db, $oid, $det );
+
+	    my $to = $db->select_scalar('select owner from mi_task where task_id = ?', $oid);
+	    my $st = $db->select_scalar('select status_id from mi_ticket where tkt_id = ?', $oid);
+	    # new event
+	    $eid = Talmud::create_object($db, 'tkt/event');
+	    $db->insert_hash('mi_tkt_event', {
+		event_id	=> $eid,
+		tkt_id		=> $oid,
+		event_who	=> $s->{auth}{uid},
+		action		=> "update",
+		details		=> ($det || undef),
+		labor		=> ($ARGS{labor} || undef),
+		owner		=> $to,
+		status_id	=> $st,
+	    } );
+	}
+
+	# new content
+	if( $ARGS{content} ){
+            my $format = $ARGS{format};
+            $format = 'plain' if $format eq 'text';
+            $format = "text/$format";
+
+            $m->comp('SELF:ADDCONTENT', db => $db, eid => $eid, format => $format, content => $ARGS{content} );
+        }
+        if( $file ){
+            my $upload = $r->upload;
+            local $/ = undef;
+            my $tmp = $upload->tempname();
+
+            open(CONTENT, $tmp);
+            my $content = <CONTENT>;
+            my $format = $m->comp('/generic/mime-type.mas', filename => $file);
+            $format ||= 'application/binary';
+            $m->comp('SELF:ADDCONTENT', db => $db, eid => $eid, format => $format, content => $content);
+        }
+
+	$db->commit();
+
+	if( $ARGS{tello} || $ARGS{tellw} ){
+
+	    # send notifications
+	    Talmud::Tkt_Email::updated( $db, $oid,
+		who	  => $s->{auth}{uid},
+		event	  => $eid,
+		details   => $det,
+		subject   => $ARGS{subject},
+		content   => $ARGS{content},
+		mime_type => $format,
+		tello	  => $ARGS{tello},
+		tellw	  => $ARGS{tellw},
+	    );
+	}
+    };
+
+    if( $@ ){
+	 my $emsg = $@;
+	 $emsg = $db->error_sanitize( $emsg );
+	 $db->rollback();
+	 $m->comp('/sys/error.mas', msg => $emsg);
+	 return $m->comp( 'view-tkt', oid => $oid );
+    }
+
+    $m->comp('/sys/redirect.mas', where => "/tkt/view-tkt?oid=$oid" );
+
+
+</%init>
+%################################################################
+<%method ADDCONTENT>
+<%args>
+    $db
+    $eid
+    $format
+    $content
+</%args>
+<%init>
+
+    my $did = Talmud::create_object($db, 'tkt/content', undef, 'rc; rc', $eid );
+
+    $db->insert_hash('mi_content', {
+        content_id   => $did,
+        content_type => "tkt",
+        mime_type    => $format,
+    } );
+
+    my $vid = Talmud::create_object($db, 'generic/version');
+    my $s = $db->prepare("insert into mi_content_version (content_id, version_id, content) values (?, ?, ?)");
+    $s->bind_param(1, $did);
+    $s->bind_param(2, $vid);
+    $s->bind_param(3, $content, { pg_type => DBD::Pg::PG_BYTEA() } );
+    $s->execute();
+
+</%init>
+</%method>

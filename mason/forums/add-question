@@ -1,0 +1,49 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-26 13:42 (EST)
+%# Function: post a new question
+%#
+%# $Id: add-question,v 1.9 2010/01/16 03:22:00 jaw Exp $
+
+<DIV CLASS=CONTEXT><A HREF="/">Home</A> &rarr; <A HREF="list-forums">Forums</A>
+&rarr; <A HREF="view-forum?oid=<% $oid %>"><% $name %></A> &rarr; Ask New Question</DIV>
+<P>
+<FORM METHOD=POST ACTION="add-question-1">
+<INPUT TYPE=HIDDEN NAME=oid VALUE="<% $oid %>">
+<TABLE>
+  <&/sys/form, dfl => $dfl, err => $err, form => $m->comp('SELF:FORM') &>
+</TABLE>
+</FORM>
+%################################################################
+<%attr>
+    title => 'Add New Post'
+    acl   => 'user :c'
+</%attr>
+%################################################################
+<%args>
+    $oid
+    $dfl => undef
+    $err => undef
+</%args>
+%################################################################
+<%init>
+    my $db = Talmud::db();
+    my $name = $db->select_scalar('select name from mi_forum_group where group_id = ?', $oid );
+
+</%init>
+%################################################################
+<%method FORM>
+<%perl>
+    return [
+{ name => 'summary', label => 'Title',    type => 'text', size => 64, maxlen => 128 },
+{ name => 'content', label => 'Question', type => 'box', ht => 10, wid => 62 },
+{ name => 'format',  label => 'Format',   type => 'menu', values => ['text', 'html', 'wiki'],
+	default => 'wiki' },
+# { name => 'sortkey', label => 'Priority', type => 'menu', values => ['normal', 'high'] },
+# ...
+{ type => 'submit',   submit => 'Submit' },
+
+    ];
+</%perl>
+</%method>

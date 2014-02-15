@@ -1,0 +1,371 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-09 12:03 (EDT)
+%# Function: view a ticket
+%#
+%# $Id: view-tkt,v 1.24 2010/08/29 17:21:25 jaw Exp $
+
+<DIV CLASS=CONTEXT><A HREF="/">Home</A> &rarr; <A HREF="list-tkts">Ticket</A> &rarr;
+	<% $t->{group} %> &rarr; #<% $t->{tkt_number} %></DIV>
+<P>
+
+% if( $merged ){
+<B>Merged</B>...
+% $m->comp( '/sys/redirect.mas', where => "/tkt/view-tkt?oid=$merged" );
+% }
+
+% if( $status eq 'dead' ){
+    <H3>Deleted Ticket</H3>
+    <TABLE CLASS="TKT-DEAD">
+% }elsif( $status eq 'closed' ){
+    <H3>Closed Ticket</H3>
+    <TABLE CLASS="TKT-CLOSED">
+% }else{
+    <TABLE CLASS="TKT-OPEN">
+% }
+
+%# update form at top
+<TR><TD VALIGN=TOP CLASS="TKT-LEFT">
+ <FORM METHOD=POST ACTION="update-tkt" ENCTYPE="multipart/form-data">
+ <TABLE CLASS="TKT-UPDATE-FORM">
+    <&/sys/form, dfl => $dfl, err => $err, form => $form &>
+ </TABLE>
+ <INPUT TYPE=HIDDEN NAME=oid VALUE=<% $oid %>>
+ <% $olddata |n%>
+ </FORM>
+
+%# content
+ <TABLE CLASS="TKT-CONTENT" WIDTH=100%>
+  <& SELF:content, db => $db, oid => $oid, verbose => $verbose &>
+ </TABLE>
+
+%# gray vertical line
+</TD><TD VALIGN=TOP WIDTH=1 CLASS=VERTLINE><BR></TD><TD VALIGN=TOP CLASS="TKT-RIGHT">
+
+<&SELF:ACTIONS, oid => $oid, status => $status, verbose => $verbose &>
+<hr>
+
+<B>Related Items:</B><BR>
+<FORM METHOD=POST ACTION="attach-tkt">
+  <INPUT TYPE=HIDDEN NAME=oid VALUE="<% $oid %>">
+  <TABLE CELLSPACING=0 CELLPADDING=0><TR>
+  <TD><INPUT TYPE=TEXT NAME=att SIZE=12 MAXLENGTH=32></TD>
+  <TD><INPUT TYPE=SUBMIT NAME="Attach" Value="Attach"></TD>
+</TR></TABLE></FORM>
+
+<!-- attachments -->
+<& SELF:ATTACHMENTS, db => $db, oid => $oid &>
+<& /generic/related.mas, oid => $oid &>
+<hr>
+<& SELF:WATCHERS, db => $db, oid => $oid &>
+
+
+</TD></TR>
+</TABLE>
+%################################################################
+<%attr>
+    title   => 'View Ticket'
+    acl	    => 'staff'
+</%attr>
+%################################################################
+<%args>
+    $oid
+    $verbose => undef
+</%args>
+%################################################################
+<%init>
+    my $db = Talmud::db();
+
+    my $labor = $db->select_scalar("select SUM(labor) from mi_tkt_event where tkt_id = ?", $oid) || "0";
+
+    my $t = $db->select_1hashref($m->scomp('SELF:DATA'), $oid);
+    my $status = $t->{status};
+    my $merged = $t->{merged_into};
+
+    $t->{xlabor} = "$labor minutes";
+
+    my( $dfl, $olddata, $err );
+    my $form = $m->comp('SELF:FORM', db => $db);
+
+    foreach my $p (@$form){
+        next unless ref $p;
+        # insert values
+	my $n = $p->{name};
+	next unless $n;
+	my $v = $t->{$n};
+	$dfl->{$n} = $v;
+	next unless $v;
+
+	# save old data in hidden fields
+        $olddata .= $m->scomp('SELF:OLDINPUT', name => $n, value => $v);
+    }
+    $dfl->{create} = "by ". $m->scomp('/sys/widgets:userlink', oid => $t->{creator}) . " at $t->{crdate}";
+    $dfl->{owner}  ||= '';
+
+    $err->{deadline} = '*' if $t->{pastdue};
+
+</%init>
+%################################################################
+<%method OLDINPUT>
+<%args>
+    $name
+    $value
+</%args>
+<input type="hidden" name="old_<% $name %>" value="<% $value %>">
+</%method>
+%################################################################
+<%method DATA>
+SELECT summary as subject, creator, tkt_number, merged_into,
+    to_char(deadline, 'YYYY-MM-DD') AS deadline, deadline < now() AS pastdue,
+    mi_tkt_section.name AS group,
+    mi_tkt_status.name AS status,
+    mi_tkt_priority.name AS prio,
+    mi_tkt_severity.name AS seve,
+    coalesce(nickname, realname) AS owner,
+
+    to_char(created_date, 'HH24:MI DD Mon YYYY') AS crdate,
+    to_char(closed, 'HH24:MI DD Mon YYYY') AS cldate
+
+  FROM mi_ticket
+    INNER JOIN mi_task ON (tkt_id = task_id)
+    INNER JOIN mi_g_object ON (tkt_id = g_obj_id)
+    INNER JOIN mi_tkt_section  ON (refers_to = section_id)
+    INNER JOIN mi_tkt_status   USING (status_id)
+    INNER JOIN mi_tkt_priority USING (priority_id)
+    INNER JOIN mi_tkt_severity USING (severity_id)
+    LEFT OUTER JOIN mi_site_user ON (mi_task.owner = mi_site_user.user_id)
+  WHERE tkt_id = ?
+</%method>
+%################################################################
+<%method FORM>
+<%args>
+    $db
+</%args>
+<%perl>
+
+    # get list of staff
+    my @staff = $db->select_column("select coalesce(nickname, realname) from mi_site_user ".
+    		"order by coalesce(nickname, realname)" );
+    unshift @staff, '';
+
+    # get list of sections, ...
+    my @sect = $db->select_column("select name from mi_tkt_section  order by name");
+    my @prio = $db->select_column("select name from mi_tkt_priority order by sort_value");
+    my @seve = $db->select_column("select name from mi_tkt_severity order by sort_value");
+
+
+    return [
+{ name => 'subject',label => 'Subject',  type => 'text', size => 60, maxlen => 400, sql => 'subject' },
+{ name => 'create', label => 'Created',  type => 'ro',  },
+{ name => 'deadline',  label => 'Deadline', type => 'date', opt => 1,
+    hint => 'When does this need to be completed by' },
+
+{ name => 'xlabor', label => 'Total Labor', type => 'ro',
+    hint => 'Total amount of time spent on this so far' },
+
+
+{ type => 'table',  how => '--' },
+
+# table...
+{ type => 'table', how => '[', border => 0 },
+
+{ name => 'group', label => 'Section',  type => 'menu', values => [@sect],   },
+{ name => 'status',label => 'Status',   type => 'menu',
+    values => ['new', 'active', 'stalled', 'on hold', 'closed', 'dead'] },
+{ type => 'table', how => '][' },
+{ name => 'prio',  label => 'Priority', type => 'menu', values => [@prio],
+	hint => 'How soon does this need to be addressed' },
+{ name => 'seve',  label => 'Severity', type => 'menu', values => [@seve],
+	hint => 'What is the impact of the issue, how widespread is the damage' },
+{ type => 'table', how => '][' },
+{ name => 'owner', label => 'Owner',    type => 'menu', values => [@staff],  }, # RSN...
+{ name => 'labor', label => 'Labor',    type => 'text', size => 6, maxlen => 16, opt => 1,
+	hint => 'How many minutes did you spend on it' },
+
+# { type => 'table', how => '][' },
+
+{ type => 'table', how => ']' },
+
+{ name => 'content', label => 'Comment',   type => 'box',  ht => 10, wid => 58 },
+{ type => 'table', how => '[', border => 0 },
+
+{ name => 'format',  label => 'Format',    type => 'menu',
+    values => ['text', 'html', 'wiki'], default => 'wiki' },
+
+# notify who? checkboxes: creator + owner + everyone who has worked on it - me
+{ type => 'table', how => '][' },
+{ name => 'tellw', label => 'Notify Workers', type => 'checkbox', opt => 1,
+	hint => 'Should I send email to the other staff members who have worked on this' },
+{ type => 'table', how => '][' },
+{ name => 'tello', label => 'CC Creator', type => 'checkbox', opt => 1,
+	hint => 'Should I email the person who opened the ticket'},
+{ type => 'table', how => ']' },
+
+{ type => 'upload', label => 'Attach File', name => 'file', opt => 1 },
+
+{ type => 'submit',   submit => 'Submit Update' },
+
+{ type => 'table', how => '--' },
+
+    ];
+</%perl>
+</%method>
+%################################################################
+<%method content>
+<%args>
+    $db
+    $oid
+    $verbose
+</%args>
+<%perl>
+
+    my $cond = $verbose ?
+	    "( current_version_p OR content_id IS NULL )"	# events with and without content
+	    : "current_version_p";				# only events with content
+
+    my $st = $db->do($m->scomp('SELF:CONT', wh => $cond), $oid);
+    my( $prevevent, $hascontent, $hdr, $needfoot );
+
+    while( my $r = $st->fetchrow_hashref ){
+	if( $r->{event_id} ne $prevevent ){
+	    # close previous event
+	    print "</TABLE></DIV></TD></TR>\n" if $needfoot;
+	    $needfoot = 0;
+
+	    my $action = $r->{action};
+	    my $link =  $m->scomp('/sys/widgets:userlink', oid => $r->{event_who});
+
+	    $hdr = qq(<TR><TD CLASS="TKT-EVENT"><DIV CLASS=BOX><TABLE WIDTH="100%">) .
+		   qq(<TR WIDTH="100%" CLASS="TKT-EVENT-HEAD"><TD>$action => $link at $r->{evwhen}</TD></TR>);
+	    $hdr .= qq(<TR CLASS="TKT-EVENT-DETAIL"><TD><FONT SIZE=-2>$r->{details}</FONT></TD></TR>\n)
+			if $r->{details};
+	    $hdr .= qq(<TR CLASS="TKT-EVENT-DETAIL"><TD><FONT SIZE=-2>Merged from tkt #$r->{orig_no}).
+			"</FONT></TD></TR>\n"
+			if $r->{tkt_id_orig};
+
+	    if( $r->{content_id} || $verbose ){
+		print $hdr;
+		$needfoot = 1;
+	    }
+	}
+
+	if( $r->{content_id} ){
+	    print "<TR CLASS=\"TKT-EVENT-DATA\"><TD>";
+
+	    $m->comp('/generic/rendercontent.mas',
+		mime       => $r->{mime_type},
+		charset    => $r->{charset},
+		content    => $r->{content},
+		oid        => $r->{content_id},
+		summary    => $r->{summary},
+		imagedispo => 'thumb',
+	    );
+	    print "<P></TD></TR>\n";
+	}
+
+	$prevevent = $r->{event_id};
+    }
+
+    print "</TABLE></DIV></TD></TR>\n" if $needfoot;
+
+</%perl>
+</%method>
+%################################################################
+<%method CONT>
+<%args>
+    $wh
+</%args>
+SELECT mi_tkt_event.*,
+    to_char(event_when, 'HH24:MI DD Mon YYYY') AS evwhen,
+    (SELECT tkt_number FROM mi_ticket WHERE tkt_id = tkt_id_orig) AS orig_no,
+    content_type, mime_type, charset, content, summary, content_id
+  FROM mi_tkt_event
+    LEFT OUTER JOIN (
+        mi_content
+          INNER JOIN mi_content_version USING (content_id)
+          INNER JOIN mi_g_object ON (mi_g_object.g_obj_id = mi_content.content_id)
+    ) ON (event_id = refers_to)
+  WHERE tkt_id = ?
+    AND <% $wh |n%>
+  -- NB: multipart messages will have the same created_date
+  ORDER BY event_when, created_date, g_obj_id
+</%method>
+%################################################################
+<%method ATTACHMENTS>
+<%args>
+    $db
+    $oid
+</%args>
+<%perl>
+    my $st = $db->do($m->scomp('SELF:ATTACH'), $oid);
+</%perl>
+% while( my $r = $st->fetchrow_hashref() ){
+    <A HREF="/<% $r->{url} %>"><% $r->{name} %></A><BR>
+% }
+</%method>
+%################################################################
+<%method ATTACH>
+SELECT obj_b as obj, mi_object_name(obj_b, true) as name,
+    mi_object_fullurl( mi_object_best(obj_b) ) as url
+  FROM mi_g_obj_rel
+    INNER JOIN mi_tkt_event ON (obj_a = event_id)
+    INNER JOIN mi_g_object ON(mi_g_obj_rel.g_obj_rel_id = mi_g_object.g_obj_id)
+  WHERE tkt_id = ?
+    AND rel_type_name = 'tkt/attach'
+  ORDER BY created_date
+</%method>
+%################################################################
+<%method ACTIONS>
+<%args>
+    $oid
+    $status
+    $verbose
+</%args>
+%# <B>Actions:</B><BR>
+<& /bkmk/widget.mas, oid => $oid &>
+% if( $status eq 'dead' || $status eq 'closed' ){
+    <A HREF="adjust-tkt?oid=<% $oid %>;s=active" TITLE="Open: Re-Open this ticket" class="logo-button"> <&/sys/sym:open&></A>
+% }else{
+    <A HREF="adjust-tkt?oid=<% $oid %>;s=closed" TITLE="Close: This issue has been resolved" class="logo-button"> <&/sys/sym:close&></A>
+    <A HREF="adjust-tkt?oid=<% $oid %>;o=mine"   TITLE="Take: Yes, I'll take care of it" class="logo-button"> <&/sys/sym:take&></A>
+    <A HREF="adjust-tkt?oid=<% $oid %>;s=dead"   TITLE="Kill: This ticket is spam--go away" class="logo-button"> <&/sys/sym:kill&></A>
+% }
+
+% if( $verbose ){
+    <A HREF="view-tkt?oid=<% $oid %>"            TITLE="Show less detail" class="logo-button"> <&/sys/sym:terse&></A>
+% }else{
+    <A HREF="view-tkt?oid=<% $oid %>;verbose=1"  TITLE="Show more detail" class="logo-button"> <&/sys/sym:verbose&></A>
+% }
+<BR><BR>
+
+<FORM METHOD=POST ACTION="merge-tkt">
+  <INPUT TYPE=HIDDEN NAME=oid VALUE="<% $oid %>">
+  <TABLE CELLSPACING=0 CELLPADDING=0><TR>
+  <TD><INPUT TYPE=TEXT NAME=into SIZE=8 MAXLENGTH=8></TD>
+  <TD><INPUT TYPE=SUBMIT NAME="Merge Into" Value="Merge Into"></TD>
+</TR></TABLE></FORM>
+
+</%method>
+%################################################################
+<%method WATCHERS>
+<%args>
+    $db
+    $oid
+</%args>
+<B>Watchers:</B><BR>
+% while(my $r = $s->fetchrow_hashref()){
+<A HREF="/<% $r->{url} %>"><% $r->{name} %></A><BR>
+%}
+<%init>
+
+    my $s = $db->do($m->scomp('SELF:WATCHERSQL'), $oid);
+</%init>
+</%method>
+<%method WATCHERSQL>
+select mi_object_name( mi_object_best(obj_a), false ) AS name,
+    mi_object_fullurl( mi_object_best(obj_a) )        AS url
+  from mi_g_obj_rel
+  where rel_type_name = 'bkmk/attach' and obj_b = ?
+  order by name
+</%method>

@@ -1,0 +1,41 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-08 23:21 (EDT)
+%# Function: 
+%#
+%# $Id: add-comment,v 1.7 2010/01/15 18:12:57 jaw Exp $
+
+<FORM METHOD=POST ACTION="add-comment-1">
+<INPUT TYPE=HIDDEN NAME=oid VALUE="<% $oid %>">
+<INPUT TYPE=HIDDEN NAME=fnc VALUE="<% $fnc %>">
+<TABLE>
+  <& /sys/form, dfl => $dfl, err => $err, form => $m->comp('SELF:form') &>
+</TABLE>
+</FORM>
+%################################################################
+<%attr>
+    title => 'Add Comment'
+    acl   => 'user :c'
+</%attr>
+%################################################################
+<%args>
+    $oid
+    $dfl => undef
+    $err => undef
+    $fnc => undef
+</%args>
+%################################################################
+<%method form>
+<%perl>
+    return [
+{ name => 'summary', label => 'Title',         type => 'text', size => 64, maxlen => 128 },
+{ name => 'content', label => 'Enter Comment', type => 'box',  ht => 10, wid => 62 },
+{ name => 'format',  label => 'Format',        type => 'menu', values => ['text', 'html', 'wiki'],
+	default => 'wiki' },
+{ name => 'sortkey', label => 'Priority',      type => 'menu', values => ['normal', 'high'] },
+# ...
+{ type => 'submit',   submit => 'Submit' },
+    ];
+</%perl>
+</%method>

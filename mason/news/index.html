@@ -1,0 +1,14 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-09 10:41 (EDT)
+%# Function: show a list of articles
+%#
+%# $Id: index.html,v 1.4 2010/01/15 18:13:09 jaw Exp $
+
+<%flags>
+    inherit => undef
+</%flags>
+<%init>
+    $m->comp( '/sys/redirect.mas', where => '/news/list-news' );
+</%init>

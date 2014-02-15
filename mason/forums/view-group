@@ -1,0 +1,21 @@
+%# -*- mason -*-
+%# Copyright (c) 2010 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Created: 2010-Aug-29 11:49 (EDT)
+%# Function: 
+%#
+%# $Id: view-group,v 1.1 2010/08/29 15:50:15 jaw Exp $
+
+%################################################################
+<%attr>
+    title   => 'View Forum'
+    acl	    => 'user'
+</%attr>
+%################################################################
+<%args>
+    $oid
+</%args>
+%################################################################
+<%init>
+    $m->comp('/sys/redirect.mas', where => "/forums/view-forum?oid=$oid");
+</%init>

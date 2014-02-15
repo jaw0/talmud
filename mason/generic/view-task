@@ -1,0 +1,78 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Created: 2003-Nov-10 17:05 (EST)
+%# Function: view a task
+%#
+%# $Id: view-task,v 1.8 2010/01/16 03:22:04 jaw Exp $
+
+<DIV CLASS=CONTEXT>
+<& /generic/context.mas, oid => $oid &>
+</DIV>
+<P>
+
+<TABLE CLASS="TASK-VIEW"><TR><TD CLASS="TASK-LEFT">
+    <TABLE>
+    <TR><TD>Summary: </TD><TD><B><% $r->{summary} %></B></TD></TR>
+    <TR><TD>Deadline: </TD><TD><% $r->{deadline} %></TD></TR>
+    <TR><TD>Status: </TD><TD><% $r->{active_p} ? 'active' : 'completed' %></TD></TR>
+    </TABLE>
+    <UL>
+% while( my $h = $st->fetchrow_hashref ){
+	<LI><A HREF="/<% $h->{url} %>"><% $h->{name} %></A>
+% }
+    <P>
+    <TABLE><TR><TD>
+    <& /sys/widgets:button, label => 'Edit', url => "/generic/edit-task?oid=$oid" &>    
+    </TD><TD>
+    <& /sys/widgets:button, label => 'Add Sub Task', url => "/generic/add-task?oid=$oid" &>    
+    </TD></TR></TABLE>
+
+<TD VALIGN=TOP WIDTH=1 CLASS=VERTLINE><BR></TD>
+<TD VALIGN=TOP WIDTH="20%" CLASS="RELATED-COL">
+
+<B>Related Items</B><BR>
+<& /generic/related.mas, oid => $oid &>
+
+<TD VALIGN=TOP WIDTH=1 CLASS=VERTLINE><BR></TD>
+<TD VALIGN=TOP CLASS="COMMENT-COL">
+
+<B>Comments</B><BR>
+<& /generic/comments.mas, oid => $oid, fnc => '/generic/view-task', wide => 0 &>
+
+</TD></TR>
+</TABLE>
+
+%################################################################
+<%attr>
+    title   => 'View Task'
+    acl	    => ':r'
+</%attr>
+%################################################################
+<%args>
+    $oid
+</%args>
+%################################################################
+<%init>
+    my $db = Talmud::db();
+
+    my $r  = $db->select_1hashref($m->scomp('SELF:TASK'), $oid );
+    my $st = $db->do($m->scomp('SELF:CHILDREN'), $oid);
+
+</%init>
+%################################################################
+<%method TASK>
+select summary, active_p, 
+    to_char(deadline, 'HH24:MI DD Mon YYYY') as deadline
+  from mi_task
+  where task_id = ?
+</%method>
+%################################################################
+<%method CHILDREN>
+SELECT mi_object_name(g_obj_id, false) as name, mi_object_fullurl(g_obj_id) as url
+  FROM mi_g_object
+    inner join mi_task on (g_obj_id = task_id)
+  WHERE refers_to = ?
+    AND active_p
+  ORDER BY sortkey
+</%method>

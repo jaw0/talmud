@@ -1,0 +1,52 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-30 12:37 (EST)
+%# Function: 
+%#
+%# $Id: edit-block,v 1.8 2010/01/16 03:22:06 jaw Exp $
+
+<DIV CLASS=CONTEXT>IPDB &rarr; Block &rarr; Edit &rarr; <% $name %></DIV>
+<P>
+
+<FORM METHOD=POST ACTION="edit-block-1">
+<INPUT TYPE=HIDDEN NAME=oid VALUE="<% $oid %>">
+<INPUT TYPE=HIDDEN NAME=prevstatus VALUE="<% $d->{status} %>">
+<TABLE>
+  <&/sys/form, dfl => $dfl, err => $err, form => $form &>
+</TABLE>
+</FORM>
+%################################################################
+<%attr>
+    title   => 'Edit Block'
+    acl	    => 'staff :w'
+</%attr>
+%################################################################
+<%args>
+    $oid
+    $dfl    => undef
+    $err    => undef
+</%args>
+%################################################################
+<%init>
+    my $db = Talmud::db();
+
+    my $d = $db->select_1hashref("select * from mi_ipdb_block where block_id = ?", $oid);
+    my $form;
+
+    # re-use add-block form
+    $form = $m->comp( 'alloc-block:FORM', db => $db );
+    shift @$form;	# remove size
+    unshift @$form,
+	{ name => 'status', label => 'Status', type => 'menu', values => [qw/allocated reserved available/],
+	sql => 'status' };
+
+    $dfl = $m->comp('/sys/form:dfl_from_sql',
+	form   => $form,
+	data   => $d,
+	sqlcol => 'sql'
+    );
+
+    my $name = "$d->{netblock}/$d->{size}";
+
+</%init>

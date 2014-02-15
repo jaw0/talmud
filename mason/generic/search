@@ -1,0 +1,96 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-08 23:17 (EDT)
+%# Function: search for things
+%#
+%# $Id: search,v 1.9 2010/08/20 04:20:53 jaw Exp $
+
+<B>Searched for:</B> <TT><% $q %></TT>
+<P>
+<TABLE>
+<%perl>
+    my $db = Talmud::db();
+
+    # build complex where clause
+
+    # handle +word -word
+    my( @w, @w2, @plus, @minus );
+
+    @w = split /\s+/, $q;
+    foreach (@w){
+	if( /^\-(.*)/ ){
+	    push @minus, $1;
+	}
+	elsif( /^\+(.*)/ ){
+	    push @plus, $1;
+	    push @w2, $1;
+	}
+	else{
+	    push @w2, $_;
+	}
+    }
+    $q = join( ' ', @w2 );
+
+    # search words
+    my %words = Talmud::Search::wordlist( $q );
+    my( @wh, @ww );
+
+    foreach my $w (keys %words){
+	print STDERR "word $w\n";
+
+	push @wh, "word = ?";
+	push @ww, $w;
+    }
+
+    my $wh = join( ' or ', @wh );
+    $wh ||= 'true';
+
+    my $pl = join('', map {
+	"\n    and (select COUNT(*) from mi_search_index X where X.object = SI.object and word = ?) != 0"
+    } @plus );
+
+    my $mn = join('', map {
+	"\n    and (select COUNT(*) from mi_search_index X where X.object = SI.object and word = ?) = 0"
+    } @minus );
+
+
+    # RSN - more details in listing
+
+    my $stmt = <<EOSQL;
+select object, mi_object_name(mi_object_best(object), false)
+  from mi_search_index SI
+  where ( $wh ) $pl $mn
+  group by object
+  order by sum(score) desc
+  limit 100
+EOSQL
+    ;
+
+    my $count;
+    my $st = $db->do($stmt, @ww, @plus, @minus);
+    while( my $r = $st->fetchrow_arrayref() ){
+	my( $o, $n, $p ) = @$r;
+	print "<TR><TD>$p <A HREF=\"/generic/view?oid=$o\">$n</A></TD></TR>\n";
+	$count ++;
+    }
+
+    unless( $count ){
+	print "<TR><TD><I>No items found...</I></TD></TR>\n";
+    }
+
+</%perl>
+</TABLE>
+%################################################################
+<%attr>
+    title   => 'Search Results'
+    acl	    => undef
+</%attr>
+%################################################################
+<%args>
+    $q	    => undef
+</%args>
+%################################################################
+<%once>
+    use Talmud::Search;
+</%once>

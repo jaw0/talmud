@@ -1,0 +1,21 @@
+
+generic object system
+================================================================
+overview
+================
+
+provides a common base class for all objects in the system
+provides common attributes and functions, such as 
+keeping track of who/when an object is created/modified,
+access control, and common generic displaying
+
+
+use
+================
+all objects in system should inherit from 'g_object'
+
+	create table foo (
+		foo_id		bigint		primary key references g_object on delete cascade
+		...
+	);
+

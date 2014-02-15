@@ -1,0 +1,29 @@
+
+need:
+	- view block
+	- view registry
+	- view meta data
+
+	- add new blocks
+	- add registry
+	- alloc block
+
+	- edit registry
+	- edit meta data
+
+	- edit block
+		allow freeing block, rejoin,
+
+	- summary
+		available by pool
+
+	query form on list
+
+	- search
+		index: swip-id, meta.netname
+
+	- goto
+	swip, rwhois
+
+
+	copy data from registry -> meta ?

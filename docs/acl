@@ -1,0 +1,32 @@
+
+
+user belongs to a set of groups
+
+component specifies a set of required groups
+	the user must belong to at least one
+
+component specifies type of access that component performs:
+	read, write, create, delete
+	(maybe also: audit, )
+	default => read
+
+object specifies mapping of groups => permitted access
+as an acl, of the form:
+
+	privlist; grouplist = privlist; ...
+
+	first privlist pertains to the owner
+	empty grouplist, or group of * pertains to public
+	grouplist: space separated list of groups
+	privlist:  smooshed together list of single letters
+
+	eg:
+		rwc; group1 group2 = rc; group3 = rwc; r
+
+	also permit just privlist to indicate public (no grouplist, no =)
+
+
+default if no acl is set => 'rwc; rwc'
+
+acl is only relevant and checked on directly accessible objects
+

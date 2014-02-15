@@ -1,0 +1,27 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-09 09:43 (EDT)
+%# Function: list facilities
+%#
+%# $Id: list-facilities,v 1.7 2010/01/16 03:21:58 jaw Exp $
+
+<DIV CLASS=CONTEXT>Equipment &rarr; Facilities &rarr; List</DIV>
+<P>
+<TABLE>
+% while( my $r = $st->fetchrow_hashref() ){
+  <TR><TD><A HREF="<% $r->{url} %>"><% $r->{code} %></A></TD><TD> - <% $r->{name} %></TD></TR>
+% }
+
+</TABLE>
+%################################################################
+<%attr>
+	title	=> 'List Facilities'
+	acl	=> 'staff'
+</%attr>
+%################################################################
+<%init>
+	my $db = Talmud::db();
+
+	my $st = $db->do("select mi_object_fullurl(fac_id) as url, code, name from mi_facility order by code");
+</%init>

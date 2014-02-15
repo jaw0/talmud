@@ -1,0 +1,22 @@
+
+usenet like discussions
+
+one level of thread hierarchy (questions, answers)
+
+multiple groups
+
+built on content
+	question: refers_to = group
+	answer:   refers_to = question
+
+
+pages:
+	list-forums
+	view-forum
+	view-thread
+	add-forum
+	add-question
+	add-followup
+
+================================================================
+

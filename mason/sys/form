@@ -1,0 +1,222 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-May-05 13:47 (EDT)
+%# Function: generate html input forms from template
+%#
+%# $Id: form,v 1.11 2010/08/21 20:18:31 jaw Exp $
+%#
+<%args>
+	$form
+	$dfl	=> undef
+	$err	=> undef
+	$ro	=> undef
+	$skipnull => undef
+</%args>
+%################################################################
+% for my $f (@$form){
+%  if( !ref $f ){
+    <% $f |n%>
+%  }else{
+%    next if $ro && $f->{type} eq 'submit';
+%    next if $ro && $skipnull && !$dfl->{ $f->{name} };
+<& SELF:formrow,  p => $f, ro => $ro, err => $err &>
+<& SELF:rowlabel, p => $f &>
+%    if($ro){
+    <td><& fieldview, field => $f, dfl => $dfl, err => $err &></td>
+%    }else{
+    <td><& field,     field => $f, dfl => $dfl, err => $err &></td>
+%    }
+    <td><B><% $err && $err->{ $f->{name} } %></B></td>
+    <td><% $f->{exthint} %></td>
+  </tr>
+%  }
+%}
+%################################################################
+<%method formrow>
+<%args>
+    $p
+    $err
+    $ro
+</%args>
+<%perl>
+    my $class = $p->{class};
+
+    if( $ro ){
+        $class .= ' input-readonly';
+    }else{
+        if( $p->{opt} ){
+            $class .= ' input-optional';
+        }else{
+            $class .= ' input-required';
+        }
+    }
+
+    $class .= ' input-error' if $err->{$p->{name}};
+
+</%perl>
+<tr<% $p->{style} ? qq{ style="$p->{style}"} : '' |n%><% $class ? qq{ class="$class"} : '' |n%>>
+</%method>
+%################################################################
+<%method rowlabel>
+<%args>
+    $p
+</%args>
+<td>
+% if( $p->{hint} ){
+<acronym title="<% $p->{hint} %>"><% $p->{label} %></acronym>
+% }else{
+<% $p->{label} %>
+% }
+</td>
+</%method>
+%################################################################
+<%method validate>
+<%args>
+	$form
+	$args
+</%args>
+<%perl>
+	my %err;
+	my $nerr;
+
+	# check optional
+	foreach my $f (@$form){
+		next if $f->{type} =~ /submit|table|ro|menu|hash/;
+		my $n = $f->{name};
+		next if $f->{opt};
+		next if $f->{optx};
+		# QQQ - defined?
+		next if $args->{$n} ne '';
+		$nerr ++;
+		$err{$n} = 'Missing required param';
+	}
+
+	# more checking...
+	foreach my $f (@$form){
+		my $n = $f->{name};
+		next unless $f->{validate};
+		my $x = $f->{validate}->( $args->{$n} );
+		next unless $x;
+		$nerr ++;
+		$err{$n} = $x;
+	}
+
+	return $nerr ? \%err : undef;
+
+</%perl>
+</%method>
+%################################################################
+<%method fixup>
+<%args>
+	$form
+	$args
+</%args>
+<%perl>
+    # massage input fields to proper format
+
+    foreach my $f (@$form){
+    	my $n = $f->{name};
+
+    	if( $f->{type} eq 'date' ){
+
+    		if( $args->{ "${n}_y" } ){
+    			$args->{$n} = join( '-', $args->{ "${n}_y" },
+    						 $args->{ "${n}_m" },
+    						 $args->{ "${n}_d" } );
+    			print STDERR "fixed $n\n";
+    		}
+    	}
+    	if( $f->{type} eq 'time' ){
+
+    		if( $args->{ "${n}_hrs" } ){
+    			$args->{$n} = sprintf "%d:%0.2d",
+    				$args->{ "${n}_hrs" },
+    				$args->{ "${n}_min" };
+    		}
+    	}
+    	if( $f->{type} eq 'bool' ){
+    		$args->{$n} = $args->{$n} eq 'yes' ? 'true' : 'false';
+    	}
+
+    	if( $f->{fixup} ){
+    		$args->{$n} = $f->{fixup}->( $args->{$n} );
+    	}
+
+    }
+
+</%perl>
+</%method>
+%################################################################
+<%method preserve>
+<%args>
+	$form
+	$dfl
+</%args>
+<%perl>
+	foreach my $f (@$form){
+		my $n = $f->{name};
+		next if $f->{type} =~ /submit|table|ro/;
+		my $v = $dfl->{ $n };
+		next unless $v;
+		print "<INPUT TYPE=HIDDEN NAME=\"$n\" VALUE=\"$v\">\n";
+	}
+</%perl>
+</%method>
+%################################################################
+<%method dfl_from_sql>
+<%args>
+	$form
+	$data
+	$sqlcol
+</%args>
+<%perl>
+	my $dfl;
+
+	foreach my $f (@$form){
+		my $t = $f->{type};
+		my $n = $f->{name};
+		my $s = $f->{$sqlcol};
+		next unless $s;
+		my $v = $data->{$s};
+
+print STDERR "cvt: $n, $t, $s, $v\n";
+
+		if( $t eq 'bool' ){
+			$dfl->{$n} = $v ? 'yes' : 'no';
+		}else{
+			$dfl->{$n} = $v;
+		}
+	}
+
+	return $dfl;
+</%perl>
+</%method>
+%################################################################
+<%method sql_from_form>
+<%args>
+	$form
+	$args
+	$sqlcol
+</%args>
+<%perl>
+	my $data;
+
+	foreach my $f (@$form){
+		my $t = $f->{type};
+		my $n = $f->{name};
+		my $s = $f->{$sqlcol};
+		next unless $s;
+		my $v = $args->{$n};
+		next unless $v;
+
+		if( $t eq 'bool' ){
+			$data->{$s} = $v eq 'yes' ? \'true' : \'false';
+		}else{
+			$data->{$s} = $v;
+		}
+	}
+
+	return $data;
+</%perl>
+</%method>

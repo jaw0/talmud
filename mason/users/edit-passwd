@@ -1,0 +1,50 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-09 11:09 (EDT)
+%# Function: change a users passwd
+%#
+%# $Id: edit-passwd,v 1.9 2010/08/20 04:20:54 jaw Exp $
+
+<DIV CLASS=CONTEXT>Edit Passwd &rarr; <% $real %></DIV>
+<P>
+<FORM METHOD=POST ACTION="edit-passwd-1">
+<TABLE>
+<% $form |n%>
+</TABLE>
+<INPUT TYPE=HIDDEN NAME=oid VALUE=<% $oid %>>
+</FORM>
+%################################################################
+<%attr>
+	title	=> 'Edit Passwd'
+	acl	=> 'acctadmin :-'
+</%attr>
+%################################################################
+<%args>
+	$oid
+	$err => undef
+</%args>
+%################################################################
+<%init>
+
+	my $db = Talmud::db();
+	my $real = $db->select_scalar("select realname from mi_site_user where user_id = ?", $oid);
+
+	my $form = $m->scomp( '/sys/form',
+		form => $m->comp( 'SELF:form' ),
+		# no defaults
+		err  => $err,
+	);
+
+</%init>
+%################################################################
+<%method form>
+<%perl>
+        return [
+{ name => 'pass1',    label => 'Passwd',     type => 'pass', size => 32, maxlen => 128 },
+{ name => 'pass2',    label => '...Again',   type => 'pass', size => 32, maxlen => 128 },
+
+{ type => 'submit',   submit => 'Submit' },
+        ];
+</%perl>
+</%method>

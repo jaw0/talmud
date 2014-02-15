@@ -1,0 +1,25 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-09 11:03 (EDT)
+%# Function: process add user form and redirect
+%#
+%# $Id: add-user-1,v 1.10 2010/01/15 18:13:16 jaw Exp $
+
+<%attr>
+    title   => 'Add User'
+    acl	    => 'acctadmin secadmin :-'
+</%attr>
+%################################################################
+<%init>
+
+    my $uid = $m->comp('/sys/domethod',
+	method	=> 'users/user-add',
+	args	=> \%ARGS,
+	error	=> ['/users/add-user'],
+    );
+
+    # view parent doc
+    $m->comp('/sys/redirect.mas', where => "/users/view-user?oid=$uid" );
+
+</%init>

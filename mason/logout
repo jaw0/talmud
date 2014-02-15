@@ -1,0 +1,32 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-08 22:20 (EDT)
+%# Function: logout user
+%#
+%# $Id: logout,v 1.8 2010/01/16 03:21:50 jaw Exp $
+
+<%flags>
+	inherit => undef
+</%flags>
+<%init>
+	my $s = Talmud::sess();
+	$s->{co} = 'invalid';
+
+	if( $s->{ci} ){
+		# delete cookie from database
+		my $db = Talmud::db();
+		$db->do("delete from mi_web_cookie where cookie_id = ?", $s->{ci} );
+	}
+
+	# delete cookie from web browser
+	$r->header_out('Set-Cookie', $s->{q}->cookie(
+		-name    => Talmud::cookiename(),
+		-value   => $s->{co},
+		-path    => '/',
+		-expires => '+1m' ));
+
+	return $m->comp( '/sys/redirect.mas', where => '/' );
+
+</%init>
+

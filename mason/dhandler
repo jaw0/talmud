@@ -1,0 +1,14 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-16 18:16 (EDT)
+%# Function: page not found handler
+%#
+%# $Id: dhandler,v 1.2 2003/11/06 04:59:47 jaw Exp $
+
+% $m->comp( '/error', msg => 'Feature not implemented' );
+%################################################################
+<%flags>
+	inherit	=> undef
+</%flags>
+

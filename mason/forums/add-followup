@@ -1,0 +1,62 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-08 23:21 (EDT)
+%# Function: 
+%#
+%# $Id: add-followup,v 1.8 2010/01/16 03:21:59 jaw Exp $
+
+<DIV CLASS=CONTEXT><A HREF="/">Home</A> &rarr; <A HREF="list-forums">Forums</A> &rarr;
+<A HREF="view-forum?oid=<% $fid %>"><% $forum %></A> &rarr; <A HREF="view-thread?oid=<% $oid %>"><% $title %></A>
+&rarr; Post Followup </DIV>
+<P>
+
+<FORM METHOD=POST ACTION="add-followup-1">
+<INPUT TYPE=HIDDEN NAME=oid VALUE="<% $oid %>">
+<TABLE>
+  <& /sys/form, dfl => $dfl, err => $err, form => $m->comp('SELF:FORM') &>
+</TABLE>
+</FORM>
+%################################################################
+<%attr>
+    title => 'Add Followup'
+    acl   => 'user :c'
+</%attr>
+%################################################################
+<%args>
+    $oid
+    $dfl => undef
+    $err => undef
+</%args>
+%################################################################
+<%init>
+    my $db = Talmud::db();
+
+    my( $fid, $forum, $title ) = $db->select_1array( $m->scomp('SELF:SUMMY'), $oid );
+
+</%init>
+%################################################################
+<%method SUMMY>
+select group_id, name, summary
+  from mi_content
+    inner join mi_content_version using (content_id)
+    inner join mi_g_object on (content_id = g_obj_id)
+    inner join mi_forum_group on (refers_to = group_id)
+  where content_id = ?
+    and current_version_p
+</%method>
+%################################################################
+<%method FORM>
+<%perl>
+    return [
+{ name => 'summary', label => 'Title',         type => 'text', size => 64, maxlen => 128 },
+{ name => 'content', label => 'Enter Message', type => 'box',  ht => 10, wid => 62 },
+{ name => 'format',  label => 'Format',        type => 'menu', values => ['text', 'html', 'wiki'],
+	default => 'wiki' },
+# { name => 'sortkey', label => 'Priority', type => 'menu', values => ['normal', 'high'] },
+# ...
+{ type => 'submit',   submit => 'Submit' },
+
+    ];
+</%perl>
+</%method>

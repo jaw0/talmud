@@ -1,0 +1,35 @@
+%# -*- mason -*-
+%# Copyright (c) 2010 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Created: 2010-Aug-29 10:23 (EDT)
+%# Function: icons + symbols
+%#
+%# $Id: sym,v 1.1 2010/08/29 14:45:01 jaw Exp $
+
+%# eyeball (less than with circle)
+<%method view>&#x2A79;</%method>
+%# hand with pencil
+<%method edit>&#x270D;</%method>
+%# aquarius
+<%method comment>&#x2652;</%method>
+%# star
+<%method bookmark_no>&#x2729;</%method>
+%# star filled
+<%method bookmark_yes>&#x272e;</%method>
+
+%# ticket system
+%# star
+<%method mine>&#x2606;</%method>
+%# circle arrow
+<%method open>&#x21ba;</%method>
+%# smiley face
+<%method close>&#x263a;</%method>
+%# cancer
+<%method take>&#x264b;</%method>
+%# big X
+<%method kill>&#x2716;</%method>
+%# circle plus
+<%method verbose>&#x2295;</%method>
+%# cirlce minus
+<%method terse>&#x2296;</%method>
+

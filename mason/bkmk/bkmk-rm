@@ -1,0 +1,42 @@
+%# -*- mason -*-
+%# Copyright (c) 2010 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Created: 2010-Aug-21 10:01 (EDT)
+%# Function: 
+%#
+%# $Id: bkmk-rm,v 1.1 2010/08/21 16:06:53 jaw Exp $
+
+<%args>
+    $oid
+</%args>
+%################################################################
+<%attr>
+    title   => 'Remove Bookmark'
+    acl	    => 'user :w'
+</%attr>
+%################################################################
+<%init>
+
+    my $s   = Talmud::sess();
+    my $db  = Talmud::db();
+
+    my $pid = $db->select_scalar('select obj_b from mi_g_obj_rel where g_obj_rel_id = ?', $oid);
+    return $m->comp('/sys/error.mas', msg => 'invalid bookmark') unless $pid;
+
+    eval {
+        $db->start();
+
+        $db->do('delete from mi_g_object where g_obj_id = ?', $oid);
+
+        $db->commit();
+    };
+    if( my $emsg = $@ ){
+	$emsg = $db->error_sanitize( $emsg );
+	$db->rollback();
+	$m->comp('/sys/error.mas', msg => $emsg);
+        return;
+    }
+
+    $m->comp('/sys/redirect.mas', where => "/generic/view?oid=$pid" );
+
+</%init>

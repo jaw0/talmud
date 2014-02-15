@@ -1,0 +1,72 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-08 23:53 (EDT)
+%# Function: 
+%#
+%# $Id: view-content,v 1.12 2010/08/29 14:45:01 jaw Exp $
+
+<TABLE CLASS="CONTENT-VIEW"><TR><TD VALIGN=TOP>
+<div class="content-head">
+<H2><% $h->{summary} %><% $h->{status} eq 'deleted' ? ' [Deleted]' : '' %></H2>
+<div style="float:right;">
+<&/bkmk/widget.mas, oid => $oid &>
+<A HREF="/generic/edit-content?oid=<% $oid %>" TITLE="edit content" class="logo-button"><&/sys/sym:edit&></A>
+% unless( $h->{content_type} eq 'comment' ){
+<A HREF="/generic/add-comment?oid=<% $oid %>;fnc=/generic/view" TITLE="add comment" class="logo-button"><&/sys/sym:view&></A>
+%}
+</div>
+created by <& /sys/widgets:userlink, oid => $h->{created_user} &>
+    at <% $h->{cr_date} %><BR>
+% if( $h->{modified_user} ){
+modified by <& /sys/widgets:userlink, oid => $h->{modified_user} &>
+    at <% $h->{mod_date} %><BR>
+% }
+% if( $h->{refers_to} ){
+In Reference To: <A HREF="/generic/view?oid=<% $h->{refers_to} %>"><% $h->{refers_name} %></A><BR>
+% }
+</div>
+<P>
+<div class="content-body">
+<& /generic/rendercontent.mas, content => $h->{content}, mime => $h->{mime_type},
+	charset => $h->{charset}, oid => $h->{content_id} &>
+<P>
+</div>
+</TD>
+<TD VALIGN=TOP WIDTH=1 CLASS=VERTLINE><BR></TD>
+<TD VALIGN=TOP CLASS="COMMENT-COL">
+
+% unless( $h->{content_type} eq 'comment' ){
+<HR>
+<B>Comments</B><BR>
+<& /generic/comments.mas, oid => $oid, fnc => '/generic/view', wide => 1 &>
+% }
+<P>
+</TD></TR></TABLE>
+%################################################################
+<%attr>
+    title   => 'View Content'
+    acl	    => ':r'
+</%attr>
+%################################################################
+<%args>
+    $oid
+</%args>
+%################################################################
+<%init>
+    my $db = Talmud::db();
+
+    my $h = $db->select_1hashref($m->scomp('SELF:CONT'), $oid);
+
+</%init>
+%################################################################
+<%method CONT>
+SELECT *, mi_object_name(refers_to, true) AS refers_name, 
+	to_char(created_date,  'HH24:MI DD Mon YYYY') AS cr_date,
+	to_char(modified_date, 'HH24:MI DD Mon YYYY') AS mod_date
+  FROM mi_content
+    INNER JOIN mi_g_object ON (mi_content.content_id = mi_g_object.g_obj_id)
+    INNER JOIN mi_content_version USING (content_id)
+  WHERE content_id = ?
+    AND current_version_p
+</%method>

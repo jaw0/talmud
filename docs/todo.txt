@@ -1,0 +1,50 @@
+
+something like the palm pilot ToDo application:
+
+able to create many lists
+each list:
+    contains items
+    can be public|private
+    can have comments
+
+each item:
+    can have a priority level
+    can have due date
+    can have comments
+    has flag: finished
+
+should it tie in with tkts, events, ... ?
+
+
+perhaps, each list is a list of objects
+or a list of tasks, and tkts subclass tasks
+
+    task { public_p, finished_p, priority, due_date, owner? }
+
+    owner = user, group, tkt_section,
+
+================================================================
+a task is a list of tasks
+================================================================
+
+ticket:
+    task.refers_to = tkt_section
+
+================================================================
+
+view tasks:
+    top level tasks: refers_to is null or not a task => not isa_task(refers_to)
+    sub level tasks: refers_to = $oid
+
+================================================================
+
+need:
+    view-task
+    add-task
+    edit-task
+    list-tasks
+================================================================
+
+trigger:
+    prohibit clearing active_p if exists active sub-tasks
+

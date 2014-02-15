@@ -1,0 +1,54 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-09 10:27 (EDT)
+%# Function: 
+%#
+%# $Id: edit-user,v 1.9 2010/01/16 03:22:10 jaw Exp $
+
+<DIV CLASS=CONTEXT>Edit User &rarr; <% $dfl->{real} %></DIV>
+<P>
+<FORM METHOD=POST ACTION="edit-user-1">
+<TABLE>
+  <&/sys/form, dfl => $dfl, err => $err, form => $m->comp('SELF:FORM') &>
+</TABLE>
+</FORM>
+%################################################################
+<%attr>
+    title   => 'Edit User'
+    acl	    => 'user'
+</%attr>
+%################################################################
+<%args>
+    $dfl => undef
+    $err => undef
+</%args>
+%################################################################
+<%init>
+    my $s  = Talmud::sess();
+    my $db = Talmud::db();
+    my $q  = $s->{auth}{uid};
+
+    unless( $dfl ){
+	$dfl = $db->select_1hashref(
+		"select realname as real, email, nickname as nick, url as home, ".
+		"photo_url as photo, biography as bio from mi_site_user where user_id = ?",
+		$q );
+    }
+
+</%init>
+%################################################################
+<%method FORM>
+<%perl>
+        return [
+{ name => 'real',    label => 'Real Name',  type => 'text', size => 48, maxlen => 128 },
+{ name => 'email',   label => 'Email',      type => 'text', size => 48, maxlen => 128 },
+{ name => 'nick',    label => 'User ID',    type => 'text', size => 48, maxlen => 128 },
+{ name => 'photo',   label => 'Photo URL',  type => 'text', size => 48, maxlen => 128 },
+{ name => 'home',    label => 'Home URL',   type => 'text', size => 48, maxlen => 128 },
+{ name => 'bio',     label => 'Short Bio',  type => 'box',  ht => 5, wid => 46 },
+
+{ type => 'submit',   submit => 'Submit' },
+        ];
+</%perl>
+</%method>

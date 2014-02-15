@@ -1,0 +1,134 @@
+
+requirements
+	enter tickets via web, email, other magic
+	update tickets
+	link tickets to customers
+	link tickets to problem objects (ckts, eqmt)
+	support for multiple departments or groups
+	deadlines, auto-escalation
+	merge tickets together
+
+	keep track of time spent for billing and tracking
+	- just send email to accting if billable,
+	- in version 2 auto-bill
+
+web pages
+	create tkt
+	view 1 tkt
+		- include links to cust acct, ckts, eqmt,
+		- include links to related tickets (same cust/ckt/eqmt/staff)
+	update tkt
+		- add content
+		- add ckt, eqmt
+		- change meta data
+		- merge
+	add watch
+
+	list tkts
+		page
+		mine,  all
+		open, closed
+		one, all sections
+		sortby: asc/desc: created, updated, prio, deadline
+		search
+
+	list tkts by X (open, closed, mine, watching, ...)
+	list all tkts related to user/ckt/eqmt/staff - later
+	my tkt portal
+	(previous 3 are all 'select => table')
+
+	admin
+		- add/remove tkt_section
+		- fsck
+
+merging:
+	set merged_into on ticket
+	update tkt_id, tkt_id_orig on all tkt_events
+
+viewing merged tkt:
+	if tkt requested was merged into another:
+
+	will not be any events:
+	display message "Ticket was merged into ###" and link
+
+================================================================
+Q:
+	dependencies?
+
+
+================================================================
+
+use:
+
+	email comes in:
+		find user_acct, contact, or tkt_user, or create tkt_user
+		create ticket
+		create event, + content
+		notify watchers of section, class + creator
+			-- obj_watch_notify( 'new child')
+
+	someone updates it:
+		create event, perhaps content
+		notify watchers of ticket
+			-- new event => update .updated => update .modified_date
+			-- => obj_watch_notify( 'modify' )
+		if attach, notify watcher of object
+			-- obj_watch_notify( 'new child')
+		if class change, notify watchers of classval
+			-- obj_watch_notify( 'new child')
+		provide checkboxes to notify: creator, owner, others who have worked on it
+
+	update comes in by email:
+		create event, content
+		notify watchers of ticket
+		notify: owner, watchers
+		[=> not creator]
+
+================================================================
+
+
+list tkts:
+                                                     updated  
+                                       created       deadline
+---------------------------------------------------------------------------------------
+|       | My toaster oven makes the toast too dark |  5 days | active | high | scott  |
+| #1234 | ethel@example.com            10 days ago |  5 days | NOC    | high | [take] |
+---------------------------------------------------------------------------------------
+
+================================================================
+
+severity ???
+   1.  - Critical. System crash, security violation, or data loss.
+   2. - No Workaround. Because of this bug, a function cannot be made to work.
+   3. - Workaround. The bug interferes with functionality but an alternative
+   4. - Cosmetic. The bug does not interfere with functionality.
+
+================================================================
+
+notifications:
+	3 types of rcpts:
+		(a) - tkt_user creator
+		(b) - staff that has worked on it => creator, owner, *.event_who
+		(c) - watchers - via generic facility
+
+	times to notify:
+		(1) - create ticket	- (c)
+		(2) - update ticket	- (a) + (b) via check boxes, (c)
+		(3) - adjust ticket	- (c)
+
+
+questions:
+	when sending (2) (a) + (b), send one email and Cc it to everyone
+	or send individual emails
+
+	individual emails will let us track bounces easier?
+
+
+also handle incoming mail
+	=> create, update, bounce
+
+	has [TAG #number]  => update ticket
+	else recognized to address => create in specified category
+	else create in unspecified category
+
+	todo => multiple addresses

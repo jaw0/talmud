@@ -1,0 +1,32 @@
+
+expected structure of Doc hierarchy
+
+root
+	help for this system
+		users
+		contacts
+		tkts
+		news
+		etp
+		eqmt
+
+	troubleshooting
+		cisco docs
+		tracreoute servers
+		looking glasses
+
+	systems
+		network maps
+		router configs
+		backups
+
+	policies
+		documentation
+		backups
+		staff
+
+	procedures
+		staff operations
+		outages
+		disaster recovery
+	

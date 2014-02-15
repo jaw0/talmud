@@ -1,0 +1,60 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-09 11:32 (EDT)
+%# Function: 
+%#
+%# $Id: add-tkt,v 1.13 2010/01/16 03:22:14 jaw Exp $
+
+<H2>Open New Ticket</H2>
+<FORM METHOD=POST ACTION="add-tkt-1">
+<TABLE>
+  <&/sys/form, dfl => $dfl, err => $err, form => $m->comp('SELF:FORM', db => $db) &>
+</TABLE>
+</FORM>
+%################################################################
+<%attr>
+    title => 'New Ticket'
+    acl   => 'user'
+</%attr>
+%################################################################
+<%args>
+    $sec => undef
+    $dfl => undef
+    $err => undef
+</%args>
+%################################################################
+<%init>
+    my $db = Talmud::db();
+    $dfl->{group} = $sec if $sec;
+	
+</%init>
+%################################################################
+<%method FORM>
+<%args>
+	$db => undef
+</%args>
+<%perl>
+    my( $unk, @sec, @pri, @sev );
+
+    if( $db ){
+	@sec = $db->select_2columns("select section_id,  name from mi_tkt_section  order by name");
+	@pri = $db->select_2columns("select priority_id, name from mi_tkt_priority order by sort_value");
+	@sev = $db->select_2columns("select severity_id, name from mi_tkt_severity order by sort_value");
+	$unk = $db->select_scalar("select section_id from mi_tkt_section where tag = 'UNK'" );
+    }
+
+    return [
+
+{ name => 'subj',    label => 'Subject',   type => 'text', size => 64, maxlen => 400 },
+{ name => 'prio',    label => 'Priority',  type => 'hash', values => [@pri], default => 0,
+	hint => 'How soon does this need to be addressed' },
+{ name => 'seve',    label => 'Severity',  type => 'hash', values => [@sev], default => 0,
+	hint => 'What is the impact of the issue, how widespread is the damage' },
+{ name => 'group',   label => 'Section',   type => 'hash', values => [@sec], default => $unk },
+{ name => 'content', label => 'Problem',   type => 'box',  ht => 10, wid => 62 },
+{ name => 'format',  label => 'Format',    type => 'menu', values => ['text', 'html', 'wiki'], default => 'wiki' },
+{ type => 'submit',   submit => 'Submit' },
+    ];
+</%perl>
+</%method>

@@ -1,0 +1,14 @@
+
+overview
+================
+provides "wiki-like" markup so that users can produce
+nice looking content without needing to know HTML.
+
+it does not provide any wiki type functionality
+other than the markup format
+
+
+use
+================
+
+

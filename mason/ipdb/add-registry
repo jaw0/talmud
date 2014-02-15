@@ -1,0 +1,39 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-30 12:45 (EST)
+%# Function: 
+%#
+%# $Id: add-registry,v 1.5 2010/01/15 18:13:03 jaw Exp $
+
+<FORM METHOD=POST ACTION="add-registry-1">
+<TABLE>
+  <&/sys/form, dfl => $dfl, err => $err, form => $m->comp('SELF:FORM') &>
+</TABLE>
+</FORM>
+%################################################################
+<%attr>
+    title => 'Add Registry'
+    acl   => 'ipdbadmin'
+</%attr>
+%################################################################
+<%args>
+    $dfl => undef
+    $err => undef
+</%args>
+%################################################################
+<%method FORM>
+<%perl>
+    return [
+{ name => 'name',   label => 'Registry',    type => 'text', size => 32, maxlen => 32, sql => 'name'},
+{ name => 'email',  label => 'Their email', type => 'text', size => 32, maxlen => 32, sql => 'email',
+	hint => 'Address to send swip forms to' },
+{ name => 'hand',   label => 'Handle',      type => 'text', size => 32, maxlen => 32, sql => 'handle',
+	hint => 'Our handle used in the registry whois database' },
+{ name => 'maint',  label => 'Maintainer',  type => 'text', size => 32, maxlen => 32, sql => 'maintainer',
+	hint => 'The maintainer tag used in the registry whois database'},
+# ...
+{ type => 'submit',   submit => 'Submit' },
+    ];
+</%perl>
+</%method>

@@ -1,0 +1,7 @@
+<DIV CLASS=SUBNAV>
+<A HREF="add-user">New User</A> &nbsp;&nbsp;&nbsp;
+<A HREF="add-group">New Group</A> &nbsp;&nbsp;&nbsp;
+<A HREF="list-users">List</A> &nbsp;&nbsp;&nbsp;
+
+</DIV>
+% $m->call_next();

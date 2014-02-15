@@ -1,0 +1,18 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-22 18:27 (EDT)
+%# Function: 
+%#
+%# $Id: add-ckt,v 1.3 2010/01/15 18:12:45 jaw Exp $
+
+<DIV CLASS=CONTEXT>Circuit &rarr; Add </DIV>
+<P>
+
+<A HREF="add-ckt-std">Standard Circuit</A><BR>
+
+%################################################################
+<%attr>
+    title   => 'Add Circuit'
+    acl	    => 'staff'
+</%attr>

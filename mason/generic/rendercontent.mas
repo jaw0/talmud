@@ -1,0 +1,76 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-May-06 12:29 (EDT)
+%# Function: render content as html
+%#
+%# $Id: rendercontent.mas,v 1.10 2010/08/22 14:28:26 jaw Exp $
+%#
+
+<%perl>
+
+    if( $HAVE_ENCODE && $charset ){
+	# convert content into utf-8
+	Encode::from_to( $content, $charset, 'utf-8' );
+    }
+
+    if( $mime eq 'text/html' ){
+	print $content;
+    }
+    elsif( $mime eq 'text/plain' || $mime eq 'text/text' ){
+	$content =~ s/&/\&amp\;/g;
+	$content =~ s/</\&lt\;/g;
+	$content =~ s/>/\&gt\;/g;
+
+	print "<PRE>$content</PRE>";
+    }
+    elsif( $mime eq 'text/auto' || $mime eq 'text/wiki' ){
+
+        my $m = Text::Markdown->new(
+            empty_element_suffix    => '>',
+            tab_width               => 2,
+        );
+        my $html = $m->markdown( $content );
+
+        print $html;
+    }
+    elsif( $mime =~ /^image/ && $oid ){
+	my $url = "/generic/fetch-content?oid=$oid";
+	my $s   = $summary;
+	if( $imagedispo eq 'link' ){
+	    print "<A HREF=\"$url\">[image] $s</A>";
+	}elsif( $imagedispo eq 'thumb' ){
+	    print "<A HREF=\"$url\"><IMG SRC=\"$url\" HEIGHT=64 TITLE=\"$s\" ALT=\"$s\"></A>";
+	}else{
+	    print "<IMG SRC=\"$url\" TITLE=\"$s\" ALT=\"$s\">";
+	}
+    }
+    else{
+	# RSN - configurable table type => function
+	if( $oid ){
+	    print "<A HREF=\"/generic/fetch-content?oid=$oid\">$mime</A>";
+	}else{
+	    print "<B>Cannot display type $mime</B>";
+	}
+    }
+</%perl>
+%################################################################
+<%args>
+    $content
+    $mime
+    $charset	=> undef
+    $oid	=> undef
+    $summary    => undef
+    $imagedispo => 'link'
+</%args>
+%################################################################
+<%once>
+    # neither is perfect...
+    # use HTML::FromText;
+    use HTML::TextToHTML;
+    use Text::Markdown;
+
+    my $HAVE_ENCODE;
+    eval { require Encode;  $HAVE_ENCODE = 1; };
+
+</%once>

@@ -1,0 +1,68 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-08 22:04 (EDT)
+%# Function: top home page (portal)
+%#
+%# $Id: index.html,v 1.15 2010/08/29 15:06:57 jaw Exp $
+
+<DIV CLASS=CONTEXT>
+Intranet Home
+</DIV>
+<P>
+
+<TABLE>
+<TR><TD VALIGN=TOP WIDTH="20%">
+<& box, title => 'Tasks', content => $m->scomp('/generic/list-new-tasks.mas', n => 10) &>
+
+<&| box, title => 'Links' &>
+<&| /sys/confsection &>
+<A HREF="/my/view-self">View Self</A><BR>
+<A SECTION=tkt   HREF="/tkt/add-tkt">Open New Ticket</A><BR>
+<A SECTION=forum HREF="/forums">Forums</A><BR>
+<A SECTION=ipdb  HREF="/ipdb">IP-DB</A><BR>
+<A HREF="/news/add-news">Write News</A><BR>
+<A HREF="/users/">List Users</A><BR>
+</&>
+% if( $s->{auth}{groups}{secadmin} ){
+<A HREF="/users/add-user">Add User</A><BR>
+% }
+% if( $s->{auth}{groups}{secoper} ){
+<A HREF="/admin/edit-config">Edit Sys Config</A><BR>
+% }
+</&>
+
+</TD><TD VALIGN=TOP WIDTH="60%">
+<& box, title => 'New News', content => $m->scomp('/news/list-new-news.mas', n => 10 ) &>
+
+</TD><TD VALIGN=TOP WIDTH="20%">
+%# <& box, title => 'Calendar', content => $m->scomp('/sys/cal-test') &>
+<& box, title => 'New Documents', content => $m->scomp('/generic/list-new-content.mas',
+	n => 10, url => '/doc/view', catg => 'etp') &>
+<& box, title => 'Favorites', content => $m->scomp('/bkmk/bkmk-list-new.mas', n => 10) &>
+</TD></TR>
+</TABLE>
+%################################################################
+<%attr>
+	title	=> "Intranet Home"
+	acl	=> undef
+	refresh => undef # 300
+</%attr>
+%################################################################
+<%init>
+	my $s = Talmud::sess();
+
+</%init>
+%################################################################
+<%def box>
+<%args>
+	$title
+	$content	=> $m->content
+</%args>
+	<DIV CLASS=BOX>
+	<TABLE WIDTH=100%>
+	<TR BGCOLOR="#DDDDDD"><TD><% $title %></TD></TR>
+	<TR><TD><% $content |n %></TD></TD>
+	</TABLE>
+	</DIV><P>
+</%def>

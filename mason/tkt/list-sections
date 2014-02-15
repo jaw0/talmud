@@ -1,0 +1,28 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-09 11:48 (EDT)
+%# Function: list sections
+%#
+%# $Id: list-sections,v 1.8 2010/01/16 03:22:15 jaw Exp $
+
+<DIV CLASS=CONTEXT>Ticket &rarr; Sections &rarr; List</DIV>
+<P>
+<TABLE>
+% while( my $r = $st->fetchrow_hashref ){
+    <TR>
+	<TD><A HREF="view-section?oid=<% $r->{section_id} %>"><% $r->{name} %></TD>
+    </TR>
+% }
+<TR><TD></TD><TD><A HREF="add-section">[Add]</A></TD></TR>
+</TABLE>
+%################################################################
+<%attr>
+    title   => 'Ticket Sections'
+    acl	    => 'staff'
+</%attr>
+%################################################################
+<%init>
+    my $db = Talmud::db();
+    my $st = $db->do("select * from mi_tkt_section order by name" );
+</%init>

@@ -1,0 +1,57 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-09 09:38 (EDT)
+%# Function: process edit meta form and redirect
+%#
+%# $Id: edit-meta-1,v 1.6 2010/01/16 03:22:07 jaw Exp $
+
+<%attr>
+    title   => 'Edit Meta'
+    acl	    => 'ipdbadmin :w'
+</%attr>
+%################################################################
+<%args>
+    $oid
+</%args>
+%################################################################
+<%init>
+    my $db = Talmud::db();
+    my $s  = Talmud::sess();
+
+    my $form = $m->comp('add-new-block:FORM');
+    shift @$form;
+    shift @$form;
+
+    $m->comp('/sys/form:fixup', form => $form, args => \%ARGS);
+    my $err = $m->comp('/sys/form:validate', form => $form, args => \%ARGS);
+    if( $err ){
+	return $m->comp( 'edit-meta', err => $err, dfl => \%ARGS );
+    }
+
+    eval {
+	my $data = $m->comp('/sys/form:sql_from_form',
+		form   => $form,
+		args   => \%ARGS,
+		sqlcol => 'sql',
+	);
+
+	$db->start();
+
+	$db->update_hash('mi_ipdb_meta', $data, [meta_id => $oid] );
+
+	Talmud::touch_object( $db, $oid );
+
+	$db->commit();
+    };
+
+    if( $@ ){
+	my $emsg = $@;
+	$emsg = $db->error_sanitize( $emsg );
+	$db->rollback();
+	$m->comp('/sys/error.mas', msg => $emsg);
+	return $m->comp( 'edit-meta', dfl => \%ARGS );
+    }
+    
+    $m->comp('/sys/redirect.mas', where => "/ipdb/view-meta?oid=$oid" );
+</%init>

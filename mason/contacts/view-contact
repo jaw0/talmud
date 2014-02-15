@@ -1,0 +1,69 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-08 22:47 (EDT)
+%# Function: view a contact
+%#
+%# $Id: view-contact,v 1.11 2010/01/16 03:21:55 jaw Exp $
+
+<DIV CLASS=CONTEXT><A HREF="/">Home</A> &rarr; <A HREF="list-contacts">Contacts</A> &rarr; <% $name %></DIV>
+<P>
+
+<TABLE CLASS="CONTACT-VIEW"><TR><TD CLASS="CONTACT-LEFT">
+
+<H3><% $name %></H3><P>
+<TABLE>
+% if( $email ){
+<TR><TD>Email</TD><TD><% $email %></TD></TR>
+% }
+<TR><TD>Category</TD><TD><% $catg %></TD></TR>
+<TR><TD>Public</TD><TD><% $pub %></TD></TR>
+% while( my $r = $cd->fetchrow_hashref() ){
+    <TR><TD><% $r->{field} %></TD><TD><% $r->{value} %></TD><TD><I><% $r->{availability} %></I></TD></TR>
+% }
+<TR><TD COLSPAN=2><A HREF="edit-contact?oid=<% $oid %>">[update]</A><BR>&nbsp;<P></TD></TR>
+</TABLE>
+
+</TD>
+
+<TD VALIGN=TOP WIDTH=1 CLASS=VERTLINE><BR></TD>
+<TD VALIGN=TOP WIDTH="20%" CLASS="RELATED-COL">
+
+<B>Related Items</B><BR>
+<& /generic/related.mas, oid => $oid &>
+<& /tkt/byuser.mas, oid => $oid, status => 'all' &>
+
+<TD VALIGN=TOP WIDTH=1 CLASS=VERTLINE><BR></TD>
+<TD VALIGN=TOP CLASS="COMMENT-COL">
+
+<B>Comments</B><BR>
+<& /generic/comments.mas, oid => $oid, fnc => '/contacts/view-contact', wide => 0 &>
+
+</TD></TR>
+</TABLE>
+%################################################################
+<%attr>
+    title   => 'View Contact'
+    acl	    => 'user'
+</%attr>
+%################################################################
+<%args>
+    $oid
+</%args>
+%################################################################
+<%init>
+    my $db = Talmud::db();
+
+    # get name
+    my( $name, $email, $catg, $pub ) = $db->select_1array(
+	"select realname, email, category, public_p from mi_person inner join mi_party on ".
+	" (party_id = person_id) where person_id = ?",
+	$oid );
+
+    $pub = $pub ? 'public' : 'private';
+
+    # get contact data
+    my $cd = $db->do( "select field, value, availability from mi_contact_data where contact_id = ?",
+    	$oid );
+
+</%init>

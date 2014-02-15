@@ -1,0 +1,22 @@
+
+functions
+	controlled by portal_prefs
+	list of new news
+	list of tkts
+	links to:
+		billing, ckts, eqmt, news, tkts, prefs, contacts
+
+prefs:
+	edit
+
+user:
+	summary info
+	links: various searches on this user
+
+
+================================================================
+url space:
+
+	/my			=> view my portal
+	/my/prefs		=> edit prefs
+

@@ -1,0 +1,36 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-22 11:21 (EDT)
+%# Function: 
+%#
+%# $Id: list-ckts,v 1.7 2010/01/16 03:21:53 jaw Exp $
+
+<DIV CLASS=CONTEXT>Circuit &rarr; List </DIV>
+<P>
+
+<TABLE>
+% while( my $r = $st->fetchrow_hashref() ){
+    <TR><TD><A HREF="/<% $r->{url} %>"><% $r->{name} %></A></TD>
+	<TD><% $r->{status} %></TD>
+	<TD><% $r->{phys_type} %></TD>
+	<TD><% $r->{srvc_type} %></TD>
+    </TR>
+% }
+</TABLE>
+%################################################################
+<%attr>
+    title   => 'List Circuits'
+    acl	    => undef
+</%attr>
+%################################################################
+<%init>
+    my $db = Talmud::db();
+    my $st = $db->do($m->scomp('SELF:CKTS'));
+</%init>
+%################################################################
+<%method CKTS>
+select *, mi_object_name(circuit_id, false) AS name, mi_object_fullurl(circuit_id) AS url
+  from mi_circuit
+  order by name
+</%method>

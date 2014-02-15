@@ -1,0 +1,62 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-17 12:58 (EDT)
+%# Function: move a document elsewhere in the doc hierarchy
+%#
+%# $Id: move-etp,v 1.10 2010/08/29 15:09:35 jaw Exp $
+
+<& /generic/context.mas, oid => $oid &><BR>
+
+<FORM METHOD=POST ACTION="move-etp-1">
+<INPUT TYPE=HIDDEN NAME=oid VALUE=<% $oid %>>
+<TABLE>
+    <&/sys/form, dfl => $dfl, err => $err, form => $m->comp( 'SELF:form', db => $db, oid => $oid ) &>
+</TABLE>
+</FORM>
+%################################################################
+<%attr>
+    title => 'Move Document'
+    acl   => 'staff :w'
+</%attr>
+%################################################################
+<%args>
+    $oid
+    $dfl => undef
+    $err => undef
+</%args>
+%################################################################
+<%init>
+    my $db = Talmud::db();
+
+</%init>
+%################################################################
+<%method form>
+<%args>
+    $oid
+    $db
+</%args>
+<%perl>
+
+    my $stmt = <<EOS;
+select content_id, summary
+  from mi_content
+    inner join mi_content_version using (content_id)
+  where current_version_p
+    and content_id != ?
+    and content_type = 'etp'
+  order by summary
+EOS
+    ;
+
+    return [
+
+{ name => 'dst',   label => 'Move Under', type => 'hash', values =>
+  [ $db->select_2columns($stmt, $oid) ] },
+
+{ type => 'submit',   submit => 'Submit' },
+
+    ];
+
+</%perl>
+</%method>

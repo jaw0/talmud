@@ -1,0 +1,78 @@
+%# -*- mason -*-
+%# Copyright (c) 2007 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Created: 2007-Apr-22 18:06 (EDT)
+%# Function: 
+%#
+%# $Id: autohandler,v 1.3 2010/01/16 03:22:11 jaw Exp $
+
+<%args>
+    $fmt    => undef
+</%args>
+%################################################################
+<%flags>
+    inherit => '/aclhandler'
+</%flags>
+%################################################################
+<%init>
+    # fetch data
+    my $data;
+    eval {
+	$data = $m->call_next();
+    };
+    if(my $e = $@){
+	if( ref $e ){
+	    $e->{error}    ||= 1;
+	    $e->{errormsg} ||= 'Method Failed';
+	    $data = $e;
+	}else{
+	    $data = {
+		error	    => 1,
+		errormsg    => $e,
+	    };
+	}
+    }else{
+	unless( ref $data ){
+	    $data = { result => $data };
+	}
+    }
+
+    $m->comp('SELF:output_in_format', data => $data, fmt => $fmt);
+</%init>
+%################################################################
+<%method output_in_format>
+<%args>
+    $data
+    $fmt    => 'json'
+</%args>
+<%perl>
+
+    my $mime = 'text/javascript';
+    my $comp = 'format_json';
+
+    $r->content_type( $mime ) if $mime;
+    $m->clear_buffer;
+
+</%perl>
+<& "REQUEST:$comp", data => $data &>
+</%method>
+%################################################################
+<%method format_json>
+<%args>
+    $data
+</%args>
+<%perl>
+<% encode_json($data) |n%>
+</%perl>
+</%method>
+%################################################################
+%# <%method format_xml>
+%#     <%perl>
+%# 	   use XML::Dumper;
+%# 	   return pl2xml($data);
+%#     </%perl>
+%# 
+%#     <%args>
+%# 	   $data
+%#     </%args>
+%# </%method>

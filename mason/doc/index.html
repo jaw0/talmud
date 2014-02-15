@@ -1,0 +1,26 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-08 23:58 (EDT)
+%# Function: redirect to doc root
+%#
+%# $Id: index.html,v 1.8 2010/01/16 03:21:55 jaw Exp $
+
+<%attr>
+	title	=> 'Doc Root Redirect'
+	acl	=> undef
+</%attr>
+%################################################################
+<%init>
+	# get doc root + redirect to it
+
+	my $db  = Talmud::db();
+
+	my $oid = $db->select_scalar("select content_id from mi_content inner " .
+	    "join mi_g_object on (content_id = g_obj_id) where refers_to is null ".
+	    "and g_obj_type = mi_g_object_type('etp/content')" );
+	    # we do not check that it is active
+
+	$m->comp( '/error', msg => 'Document Root Not Found!' ) unless $oid;
+	$m->comp('/sys/redirect.mas', where => "/doc/view?oid=$oid");
+</%init>

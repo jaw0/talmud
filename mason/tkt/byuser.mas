@@ -1,0 +1,61 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-23 12:53 (EDT)
+%# Function: list tkts related to a user
+%#
+%# $Id: byuser.mas,v 1.9 2010/01/18 03:15:29 jaw Exp $
+
+% while( my $r = $st->fetchrow_hashref() ){
+%   next if $distinct{ $r->{url} } ++;
+    <A HREF="/<% $r->{url} %>">tkt: #<% $r->{tkt_number} %></A><BR>
+% }
+%################################################################
+<%args>
+    $oid
+    $status	=> 'all'
+</%args>
+%################################################################
+<%init>
+    my $db = Talmud::db();
+
+    my( $wh, @wh );
+
+    if( $status eq 'deleted' ){
+	my $s = $db->select_scalar("select status_id from mi_tkt_status where name = ?", 'dead');
+	$wh .= ' and status_id = ?';
+	push @wh, $s;
+    }
+    elsif( $status eq 'closed' ){
+    	my $s = $db->select_scalar("select status_id from mi_tkt_status where name = ?", 'closed');
+	$wh .= ' and status_id = ?';
+	push @wh, $s;
+    }
+    elsif( $status eq 'all' ){
+	# all = open or closed
+	$wh .= ' and mi_tkt_status.name != ?';
+	push @wh, 'deleted';
+    }
+    else{
+	# default: open
+	$wh .= " and mi_tkt_status.active_p";
+    }
+
+    my $stmt = <<ESQL;
+select mi_object_name( tkt_id, true ) as name,
+    mi_object_fullurl( tkt_id ) as url,
+    tkt_number
+  from mi_ticket
+    inner join mi_task on (tkt_id = task_id)
+    inner join mi_g_object on (tkt_id = g_obj_id)
+    inner join mi_tkt_status using (status_id)
+  where (creator = ? or owner = ?) and merged_into is null
+  $wh
+  order by tkt_number
+ESQL
+    ;
+
+    my $st = $db->do( $stmt, $oid, $oid, @wh );
+    my %distinct;
+
+</%init>

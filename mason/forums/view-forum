@@ -1,0 +1,69 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-26 13:27 (EST)
+%# Function: 
+%#
+%# $Id: view-forum,v 1.9 2010/08/29 17:21:25 jaw Exp $
+
+<DIV CLASS=CONTEXT><A HREF="/">Home</A> &rarr; <A HREF="list-forums">Forums</A> &rarr; <% $name %></DIV>
+<P>
+
+<h2>
+<% $name %> - <% $descr %>
+<&/bkmk/widget.mas, oid => $oid &>
+</h2>
+
+<A HREF="add-question?oid=<% $oid %>">Post New Question</A><BR><BR>
+
+<TABLE>
+<TR><TH>Subject</TH><TH>Author</TH><TH>Replies</TH><TH>Last Reply</TH></TR>
+% while( (my $r = $st->fetchrow_hashref()) && ($n++ < $limit) ){
+<TR><TD><A HREF="view-thread?oid=<% $r->{content_id} %>"><% $r->{summary} %></A></TD>
+    <TD ALIGN=CENTER><& /sys/widgets:userlink, oid => $r->{created_user} &></TD>
+    <TD ALIGN=CENTER><% $r->{n_replies} %></TD><TD><% $r->{last_post} %></TD></TR>
+% }
+
+</TABLE>
+<& /sys/morepages.mas, limit => $limit, offset => $offset,
+	rows => $st->rows(),
+	url => "/forums/view-forum?oid=$oid" &>
+
+%################################################################
+<%attr>
+    title   => 'View Forum'
+    acl	    => 'user'
+</%attr>
+%################################################################
+<%args>
+    $oid
+    $offset	=> 0
+    $limit	=> 100
+</%args>
+%################################################################
+<%init>
+    my $db = Talmud::db();
+
+    my $n;
+
+    my($name,$descr) = $db->select_1array('select name, descr from mi_forum_group where group_id = ?', $oid );
+
+    my $st = $db->do($m->scomp('SELF:POSTS', off => $offset), $oid);
+
+</%init>
+%################################################################
+<%method POSTS>
+<%args>
+    $off
+</%args>
+select content_id, summary, created_user, n_replies, 
+    to_char( last_reply, 'HH24:MI DD Mon YYYY' ) as last_post
+  from mi_content
+    inner join mi_g_object on (content_id = g_obj_id)
+    inner join mi_forum_post_info on (content_id = post_id)
+    inner join mi_content_version using (content_id)
+  where refers_to = ?
+    and current_version_p
+  order by last_reply desc
+  offset <% $off + 0 %>
+</%method>

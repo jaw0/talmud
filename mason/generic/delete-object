@@ -1,0 +1,41 @@
+%# -*- mason -*-
+%# Copyright (c) 2010 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Created: 2010-Aug-21 19:28 (EDT)
+%# Function: 
+%#
+%# $Id$
+
+<%args>
+    $oid
+    $next   => '/'
+</%args>
+%################################################################
+<%attr>
+    title   => 'delete'
+    acl	    => 'user :w'
+</%attr>
+%################################################################
+<%init>
+
+    my $db = Talmud::db();
+
+    eval {
+
+	$db->start();
+        # really delete
+        # will cascade
+        $db->do('delete from mi_g_object where g_obj_id = ?', $oid);
+	$db->commit();
+    };
+    if( $@ ){
+	my $emsg = $@;
+	$emsg = $db->error_sanitize( $emsg );
+	$db->rollback();
+	$m->comp('/sys/error.mas', msg => $emsg);
+        return;
+    }
+
+    $m->comp('/sys/redirect.mas', where => $next );
+
+</%init>

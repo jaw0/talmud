@@ -1,0 +1,58 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-May-07 15:45 (EDT)
+%# Function: process add section form and redirect
+%#
+%# $Id: add-section-1,v 1.11 2010/01/16 03:22:13 jaw Exp $
+%#
+
+<%attr>
+    title   => 'Add New Section'
+    acl	    => 'tktadmin'
+</%attr>
+%################################################################
+<%args>
+    $name
+    $tag
+    $mail
+</%args>
+%################################################################
+<%init>
+
+    my $s  = Talmud::sess();
+    my $db = Talmud::db();
+    my $f  = $m->comp('add-section:FORM');
+    my $cid = Talmud::g_obj_next_id($db);
+
+    $m->comp('/sys/form:fixup', form => $f, args => \%ARGS);
+    my $err = $m->comp('/sys/form:validate', form => $f, args => \%ARGS);
+    if( $err ){
+	return $m->comp( 'add-section', err => $err, dfl => \%ARGS );
+    }
+
+    eval{
+	$db->start();
+
+	Talmud::create_object( $db, 'tkt/section', $cid );
+
+        $db->insert_hash('mi_tkt_section', {
+	    section_id	=> $cid,
+	    name	=> ($name  || undef),
+	    tag		=> ($tag   || undef),
+	    mail_from   => ($mail  || undef),
+	} );
+
+	$db->commit();
+    };
+    if( $@ ){
+	my $emsg = $@;
+	$emsg = $db->error_sanitize( $emsg );
+	$db->rollback();
+	$m->comp('/sys/error.mas', msg => $emsg);
+	return $m->comp( 'add-section', dfl => \%ARGS );
+    }
+
+    $m->comp('/sys/redirect.mas', where => "/tkt/list-sections" );
+
+</%init>

@@ -1,0 +1,14 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-08 22:33 (EDT)
+%# Function: redirect to list
+%#
+%# $Id: index.html,v 1.3 2010/01/15 18:12:52 jaw Exp $
+
+<%flags>
+    inherit => undef
+</%flags>
+<%init>
+    $m->comp( '/sys/redirect.mas', where => '/contacts/list-contacts' );
+</%init>

@@ -1,0 +1,47 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-25 12:43 (EDT)
+%# Function: argus summary box
+%#
+%# $Id: argus.mas,v 1.5 2007/04/23 02:43:08 jaw Exp $
+
+<DIV>
+<TABLE CELLSPACING=0 STYLE="border: solid; border-width: thin;">
+<TR>
+<TD><A HREF="http://home.tcp4me.com/argus" TITLE="The All-Seeing Monitoring System">Argus</A>:&nbsp;</TD>
+% foreach my $s (qw/up down override/){
+%   my $color = $r->{$s} ? " STYLE=\"background-color: $argus_colors{$s}\";" : "";
+<TD WIDTH="25%" ALIGN=CENTER<% $color |n%>><% $r->{$s} %></TD>
+% }
+</TR>
+</TABLE>
+</DIV>
+%################################################################
+<%init>
+    my $r;
+
+    if( time() - $argus_cache{time} < 15 ){
+	$r = $argus_cache{data};
+    }else{
+	Argus::Web::connect_if_not_already();
+	$r = $Argus::Web::argusd->command(
+		func   => 'summary',
+		object => 'Top',
+	);
+
+	$argus_cache{time} = time();
+	$argus_cache{data} = $r;
+	}
+	
+</%init>
+%################################################################
+<%once>
+    my %argus_cache = ();
+
+    my %argus_colors = (
+	up       => '#2D3', # green
+	down     => '#F02', # red
+	override => '#DDD', # gray
+    );
+</%once>

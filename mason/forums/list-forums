@@ -1,0 +1,49 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-26 12:57 (EST)
+%# Function: list forums
+%#
+%# $Id: list-forums,v 1.9 2010/01/16 03:22:00 jaw Exp $
+
+<DIV CLASS=CONTEXT><A HREF="/">Home</A> &rarr; Forums &rarr; List</DIV>
+<P>
+<TABLE WIDTH="100%">
+<TR><TH WIDTH="70%">Forum</TH><TH>Threads</TH><TH>Last Post</TH></TR>
+
+% while( my $r = $st->fetchrow_hashref ){
+    <TR>
+	<TD><A HREF="view-forum?oid=<% $r->{group_id} %>"><% $r->{name} %></A>
+	    <I><% $r->{descr} %></I></TD>
+	<TD ALIGN=CENTER><% $r->{nthreads} %></TD><TD ALIGN=CENTER><% $r->{last_post} %></TD>
+    </TR>
+% }
+
+</TABLE>
+%################################################################
+<%attr>
+    title   => 'List Forums'
+    acl	    => 'user'
+</%attr>
+%################################################################
+<%init>
+    my $db = Talmud::db();
+
+    my $st = $db->do($m->scomp('SELF:FORUMS'));
+
+</%init>
+%################################################################
+<%method FORUMS>
+select name, descr, group_id,
+    (select COUNT(*)
+       from mi_content
+         inner join mi_g_object on (content_id = g_obj_id)
+       where refers_to = group_id) as nthreads,
+    (select to_char(MAX(last_reply), 'HH24:MI DD Mon YYYY')
+        from mi_content
+	  inner join mi_forum_post_info on (content_id = post_id)
+	  inner join mi_g_object on (content_id = g_obj_id)
+        where refers_to = group_id) as last_post
+  from mi_forum_group
+  where active_p
+</%method>

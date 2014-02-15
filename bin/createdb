@@ -1,0 +1,65 @@
+#!/usr/local/bin/perl
+# -*- perl -*-
+
+# Copyright (c) 2010 by Jeff Weisberg
+# Author: Jeff Weisberg <jaw @ tcp4me.com>
+# Created: 2010-Aug-21 14:23 (EDT)
+# Function: 
+#
+# $Id: createdb,v 1.2 2010/08/21 23:11:48 jaw Exp $
+
+use lib 'lib';
+use lib '../lib';
+use Getopt::Std;
+use Talmud::SQL;
+use strict;
+
+my %opt;
+getopts('n', \%opt);
+
+my $db = Talmud::SQL->connect();
+
+my $sql;
+while(<>){
+
+    s/--.*$//gm;
+    s/^\s*//;
+    s/[\t ]*$//;
+
+    next if /^\s*$/;
+    $sql .= $_;
+
+    next if( $sql =~ /create .*function/ && $sql !~ /end.*language.*plpgsql/ );
+    next unless $sql =~ /;$/;
+
+    if( $sql =~ /^select/ ){
+        $sql =~ s/\n//g;
+        $sql .= ' -- INTO X';
+    }
+
+    print STDERR ">> $sql\n\n";
+
+    unless( $opt{n} ){
+        eval {
+            $db->start();
+            $db->do($sql);
+            $db->commit();
+        };
+        if( my $e = $@ ){
+            $db->rollback();
+            die $e;
+        }
+    }
+
+    $sql = '';
+
+}
+
+
+$db->do('vacuum analyze');
+
+my $s = $db->do('select g_obj_id as obj, mi_object_name(g_obj_id, true) as name from mi_g_object');
+while(my $r = $s->fetchrow_hashref()){
+    print STDERR "\t$r->{obj}\t$r->{name}\n";
+}
+

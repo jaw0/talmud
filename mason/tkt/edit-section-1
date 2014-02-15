@@ -1,0 +1,56 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-09 12:37 (EDT)
+%# Function: process edit section form and redirect
+%#
+%# $Id: edit-section-1,v 1.8 2010/01/16 03:22:15 jaw Exp $
+
+<%attr>
+    title   => 'Edit Section'
+    acl	    => 'tktadmin :w'
+</%attr>
+%################################################################
+<%args>
+    $oid
+    $name
+    $tag
+    $mail
+</%args>
+%################################################################
+<%init>
+
+    my $s  = Talmud::sess();
+    my $db = Talmud::db();
+    my $f  = $m->comp('add-section:FORM');
+
+    $m->comp('/sys/form:fixup', form => $f, args => \%ARGS);
+    my $err = $m->comp('/sys/form:validate', form => $f, args => \%ARGS);
+    if( $err ){
+	return $m->comp( 'edit-section', err => $err, dfl => \%ARGS );
+    }
+
+    eval{	
+	$db->start();
+
+        $db->update_hash( 'mi_tkt_section', {
+	    name	=> ($name    || undef),
+	    tag		=> (uc($tag) || undef),
+	    mail_from   => ($mail    || undef),
+	    } ,	[ section_id => $oid ] );
+
+	Talmud::touch_object( $db, $oid );
+
+	$db->commit();
+    };
+    if( $@ ){
+	my $emsg = $@;
+	$emsg = $db->error_sanitize( $emsg );
+	$db->rollback();
+	$m->comp('/sys/error.mas', msg => $emsg);
+	return $m->comp( 'edit-section', dfl => \%ARGS );
+    }
+    
+    $m->comp('/sys/redirect.mas', where => "/tkt/list-sections" );
+
+</%init>

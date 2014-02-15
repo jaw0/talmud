@@ -1,0 +1,76 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-09 10:32 (EDT)
+%# Function: view my own data
+%#
+%# $Id: view-self,v 1.9 2010/01/16 03:22:10 jaw Exp $
+
+%# RSN - preferences
+
+<DIV CLASS=CONTEXT>View Self &rarr; <% $s->{auth}{user} %></DIV>
+<P>
+
+<A HREF="/logout">Log Out</A><BR>
+<A HREF="edit-passwd">Change Password</A><BR>
+<A HREF="audit-login">View Login Log</A><BR>
+<P>
+<A HREF="/users/view-user?oid=<% $uid %>">What other people see about you</A><BR>
+
+<P>
+<TABLE>
+<TR><TD COLSPAN=2><B>Basic Information</TD></TR>
+<TR><TD>&nbsp;&nbsp; real name</TD><TD><% $h{realname} || 'not set' %></TD></TR>
+<TR><TD>&nbsp;&nbsp; aka.</TD><TD COLSPAN=2><% $h{nickname} || 'not set' %></TD></TR>
+<TR><TD>&nbsp;&nbsp; email</TD><TD COLSPAN=2><% $h{email} || 'not set' %></TD></TR>
+% if( $h{url} ){
+ <TR><TD>&nbsp;&nbsp; homepage</TD><TD COLSPAN=2><A HREF="<% $h{url} %>"><% $h{url} %></A></TD></TR>
+% }else{
+ <TR><TD>&nbsp;&nbsp; homepage</TD><TD COLSPAN=2>not set</TD></TR>
+% }
+% if( $h{photo_url} ){
+ <TR><TD>&nbsp;&nbsp; portrait</TD><TD COLSPAN=2><A HREF="<% $h{photo_url} %>"><% $h{photo_url} %></A></TD></TR>
+% }else{
+ <TR><TD>&nbsp;&nbsp; portrait</TD><TD COLSPAN=2>not set</A></TD></TR>
+% }
+
+<TR><TD COLSPAN=2><A HREF="edit-user">[update]</A><BR>&nbsp;<P></TD></TR>
+
+<TR><TD COLSPAN=2><B>Contact Information</TD></TR>
+
+% while( my $r = $cd->fetchrow_arrayref() ){
+%	my($f,$v,$a) = @$r;
+<TR><TD>&nbsp;&nbsp; <% $f %></TD><TD><% $v %></TD><TD><I><% $a %></I></TD></TR>
+% }
+
+<TR><TD COLSPAN=2><A HREF="edit-contact">[update]</A><BR>&nbsp;<P></TD></TR>
+
+<TR><TD COLSPAN=2><B>Preferences</TD></TR>
+<TR><TD>&nbsp;&nbsp; ticket section</TD><TD><% $h{section} || 'not set' %></TD></TR>
+<TR><TD>&nbsp;&nbsp; theme</TD><TD><% $h{theme} || 'not set' %></TD></TR>
+
+<TR><TD COLSPAN=2><A HREF="edit-prefs">[update]</A><BR>&nbsp;<P></TD></TR>
+
+</TABLE>
+
+
+%################################################################
+<%attr>
+    title   => 'View Self'
+    acl	    => 'user'
+</%attr>
+%################################################################
+<%init>
+    my $db = Talmud::db();
+    my $s  = Talmud::sess();
+    my $uid  = $s->{auth}{uid};
+
+    # get general data
+    my %h = %{ $db->select_1hashref("select *, mi_tkt_section.name as section ".
+	" from mi_site_user left outer join mi_tkt_section using (section_id) where user_id = ?", $uid) };
+
+    # get contact data
+    my $cd = $db->do("select field, value, availability from mi_contact_data where contact_id = ?",
+	$uid );
+
+</%init>

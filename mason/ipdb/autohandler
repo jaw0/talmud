@@ -1,0 +1,16 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-09 09:27 (EDT)
+%# Function: 
+%#
+%# $Id: autohandler,v 1.2 2003/11/12 23:57:16 jaw Exp $
+
+<DIV CLASS=SUBNAV>
+<A HREF="alloc-block">Allocate Block</A> &nbsp;&nbsp;&nbsp;
+<A HREF="list-blocks">List Blocks</A> &nbsp;&nbsp;&nbsp;
+<A HREF="summary">Summary</A> &nbsp;&nbsp;&nbsp;
+<A HREF="admin">Admin</A> &nbsp;&nbsp;&nbsp;
+
+</DIV>
+% $m->call_next();

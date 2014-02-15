@@ -1,0 +1,62 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Created: 2003-Nov-10 16:53 (EST)
+%# Function: process and redirect
+%#
+%# $Id: add-task-1,v 1.8 2010/01/16 03:22:01 jaw Exp $
+
+<%attr>
+    title   => 'Add Task'
+    acl	    => 'user :c'
+</%attr>
+%################################################################
+<%args>
+    $oid	=> undef
+    $summary
+    $pubp	=> undef
+    $sortkey	=> 0
+</%args>
+%################################################################
+<%init>
+    my $s   = Talmud::sess();
+    my $db  = Talmud::db();
+    my $cid = Talmud::g_obj_next_id($db);
+
+    my $f   = $m->comp('add-task:FORM');
+    $m->comp('/sys/form:fixup', form => $f, args => \%ARGS);
+    my $err = $m->comp('/sys/form:validate', form => $f, args => \%ARGS);
+    if( $err ){
+	return $m->comp( 'add-task', err => $err, dfl => \%ARGS );
+    }
+
+    eval{
+	$db->start();
+	Talmud::create_object($db, 'generic/task', $cid, undef, $oid||undef);
+
+	print STDERR "task deadline: $ARGS{deadline}\n";
+
+	$db->insert_hash( 'mi_task', {
+	    task_id	=> $cid,
+	    owner	=> $s->{auth}{uid},
+	    summary	=> ($summary	    || undef),
+	    deadline	=> ($ARGS{deadline} || undef),
+	    public_p    => ($pubp eq 'public' ? 'true' : 'false'),
+	    sortkey	=> $sortkey,
+
+	} );
+
+	$db->commit();
+    };
+    if( $@ ){
+	my $emsg = $@;
+	$emsg = $db->error_sanitize( $emsg );
+	$db->rollback();
+	$m->comp('/sys/error.mas', msg => $emsg);
+	return $m->comp( 'add-task', dfl => \%ARGS );
+    }
+    
+    # view parent doc
+    $m->comp('/sys/redirect.mas', where => "/generic/view-task?oid=$cid" );
+
+</%init>

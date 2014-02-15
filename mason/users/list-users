@@ -1,0 +1,29 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-09 11:14 (EDT)
+%# Function: list all users
+%#
+%# $Id: list-users,v 1.8 2010/01/16 03:22:18 jaw Exp $
+
+<H3>List Users</H3>
+
+<TABLE>
+<%perl>
+	my $db = Talmud::db();
+
+	my $st = $db->do(
+		"select user_id, realname, coalesce(nickname, email) from mi_site_user order by user_id");
+
+	while( my $r = $st->fetchrow_arrayref() ){
+		my($uid, $real, $nick) = @$r;
+
+		print "<TR><TD><A HREF=\"view-user?oid=$uid\">$nick</A></TD><TD>$real</TD></TR>\n";
+	}
+</%perl>
+</TABLE>
+%################################################################
+<%attr>
+	title	=> 'List Users'
+	acl	=> 'user'
+</%attr>

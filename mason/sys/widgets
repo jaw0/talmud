@@ -1,0 +1,68 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-May-06 16:35 (EDT)
+%# Function: html widgets
+%#
+%# $Id: widgets,v 1.10 2010/01/16 03:22:13 jaw Exp $
+%#
+<%once>
+	my %link_cache;		# => {time, real}
+</%once>
+%################################################################
+<%method button>
+<A HREF="<% $url %>" CLASS=BUTTON
+% if( $title ){
+TITLE="<% $title %>"
+% }
+><% $label %></A>
+%# <& SELF:button_text, txt => "<A HREF=\"$url\">$label</A>" &>
+<%args>
+	$label
+	$url
+	$title	=> undef
+</%args>
+</%method>
+%################################################################
+<%method button_text>
+<TABLE BORDER=1 WIDTH=150><TR><TD ALIGN=CENTER CLASS=BUTTON>
+<% $txt %>
+</TD></TR></TABLE>
+<%args>
+	$txt
+</%args>
+</%method>
+%################################################################
+<%method userlink>
+%# shhh, don't tell anyone, but this would also work for a link to anything
+% if( $link && $url ){
+<A HREF="/<% $url %>" TITLE="Tell me more about this fellow"><% $realname %></A>
+% }else{
+<% $realname %>
+% }
+<%args>
+	$oid
+	$link	=> 1
+</%args>
+<%init>
+	my( $realname, $url );
+	my $c = $link_cache{$oid};
+
+	# keep a cache of recently looked up names
+	if( $c && (time() - $c->{time} < 60) ){
+		$realname = $c->{real};
+		$url      = $c->{url};
+	}else{
+		my $db = Talmud::db();
+
+		($realname, $url) = $db->select_1array(
+			"select mi_object_name(?, false), mi_object_fullurl(?)",
+			$oid, $oid);
+
+		$realname ||= '(unknown)';
+
+		$link_cache{ $oid } = { time => time(), real => $realname, url => $url };
+	}
+</%init>
+</%method>
+

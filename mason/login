@@ -1,0 +1,41 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-May-05 13:45 (EDT)
+%# Function: generate login page
+%#
+%# $Id: login,v 1.5 2010/08/20 15:42:24 jaw Exp $
+%#
+<HTML>
+<HEAD>
+<TITLE>Please Login</TITLE>
+</HEAD>
+<BODY BGCOLOR="#FFFFFF">
+<% $ehdr |n%>
+<H2>Please Login</H2>
+
+<FORM METHOD=POST ACTION="/login-1">
+<TABLE>
+<% $form |n%>
+</TABLE>
+</FORM>
+
+</BODY>
+</HTML>
+%################################################################
+<%flags>
+	inherit => undef
+</%flags>
+<%init>
+  my $form = $m->scomp('/sys/form', form => [
+    { name => 'user',     label => 'Username', type => 'text', size => 16, maxlen => 32 },
+    { name => 'pass',     label => 'Password', type => 'pass', size => 16, maxlen => 32 },
+    { type => 'submit',   submit => 'Login', },
+    ], dfl => \%ARGS );
+
+  my $ehdr = $emsg ? "<H2><FONT COLOR=\"#FF0000\">$emsg</FONT></H2>" : '';
+
+</%init>
+<%args>
+	$emsg => undef
+</%args>

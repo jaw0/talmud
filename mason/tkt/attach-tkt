@@ -1,0 +1,66 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-09 11:40 (EDT)
+%# Function: attach an object and redirect
+%#
+%# $Id: attach-tkt,v 1.13 2010/08/21 20:18:31 jaw Exp $
+
+<%attr>
+    title   => 'Attach Ticket'
+    acl	    => 'staff :c'
+</%attr>
+%################################################################
+<%args>
+    $oid
+    $att
+</%args>
+%################################################################
+<%init>
+    my $s  = Talmud::sess();
+    my $db = Talmud::db();
+    my( $oa, $descr );
+
+    # what are we attaching?
+    ($oa, $descr) = $m->comp( '/generic/find.mas', what => $att );
+
+    if( $oa ){
+	eval {
+	    $db->start();
+
+	    my $eid = Talmud::create_object( $db, 'tkt/event' );
+
+	    $db->insert_hash('mi_tkt_event', {
+		event_id	=> $eid,
+		tkt_id		=> $oid,
+		event_who	=> $s->{auth}{uid},
+		action		=> 'attach',
+		details		=> "attached $descr",
+	    } );
+
+	    # attachment
+            my $aid = Talmud::g_obj_next_id($db);
+	    $db->select_scalar(
+		"select mi_g_obj_rel__new( ?, ?, NULL, 'tkt/attach', ?, ? )",
+		$aid, $s->{auth}{uid}, $eid, $oa );
+
+	    # touch ticket
+	    Talmud::touch_object( $db, $oid, "attached: $descr" );
+
+	    $db->commit();
+	};
+	if( $@ ){
+	     my $emsg = $@;
+	     $emsg = $db->error_sanitize( $emsg );
+	     $db->rollback();
+	     $m->comp('/sys/error.mas', msg => $emsg);
+	     return $m->comp( 'view-tkt', oid => $oid );
+	}
+    }else{
+	 $m->comp('/sys/error.mas', msg => "Unable to locate object to attach '$att'");
+	 return $m->comp( 'view-tkt', oid => $oid );
+    }
+
+    $m->comp('/sys/redirect.mas', where => "/tkt/view-tkt?oid=$oid" );
+
+</%init>

@@ -1,0 +1,43 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-23 13:24 (EDT)
+%# Function: show revision history of content
+%#
+%# $Id: view-history,v 1.6 2010/01/16 03:22:04 jaw Exp $
+
+<TABLE>
+% while( my $r = $st->fetchrow_hashref() ){
+
+<TR>
+  <TD><% $r->{summary} %></TD><TD> - <% $r->{crdate} %></TD>
+  <TD> by <& /sys/widgets:userlink, oid => $r->{created_user} &></TD>
+</TR>
+
+% }
+</TABLE>
+%################################################################
+<%attr>
+    title   => 'View Content History'
+    acl	    => ':r'
+</%attr>
+%################################################################
+<%args>
+    $oid
+</%args>
+%################################################################
+<%init>
+    my $db = Talmud::db();
+
+    my $st = $db->do($m->scomp('SELF:HIST'), $oid );
+
+</%init>
+%################################################################
+<%method HIST>
+select version_id, summary, created_user,
+    to_char(created_date,  'HH24:MI DD Mon YYYY') AS crdate
+  from mi_content_version
+    inner join mi_g_object ON (version_id = g_obj_id)
+  where content_id = ?
+  order by created_date desc
+</%method>

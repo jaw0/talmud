@@ -1,0 +1,103 @@
+%# -*- mason -*-
+%# Copyright (c) 2004 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Created: 2004-Jan-08 17:37 (EST)
+%# Function: 
+%#
+%# $Id: add-user-1,v 1.1 2007/04/23 02:44:58 jaw Exp $
+
+<DIV CLASS=CONTEXT>Monitoring &rarr; Add User</DIV>
+<P>
+<FORM METHOD=POST ACTION="add-user-2">
+<TABLE>
+<% $form |n%>
+</TABLE>
+<% $preserve |n%>
+</FORM>
+%################################################################
+<%attr>
+    title   => 'Add User'
+    acl	    => 'staff'
+</%attr>
+%################################################################
+<%args>
+    $dfl => undef
+    $err => undef
+</%args>
+%################################################################
+<%init>
+
+	# validate previous form
+	my $f0 = $m->comp('add-user:form');
+
+	# we could be here from add-user (values in %ARGS) or add-user-2 (values in $dfl)
+	$dfl ||= \%ARGS;
+
+	$m->comp('/sys/form:fixup', form => $f0, args => $dfl );
+	my $ferr = $m->comp('/sys/form:validate', form => $f0, args => $dfl );
+
+	if( $dfl->{passwd} ne $dfl->{again} ){
+	    $ferr->{passwd} = $ferr->{again} = 'passwd mismatch';
+	}
+
+	if( $ferr ){
+		return $m->comp( 'add-user', err => $ferr, dfl => $dfl );
+    	}
+
+	# and preserve the values
+	my $preserve = $m->scomp( '/sys/form:preserve',
+		form => $f0,
+		dfl  => $dfl,
+	);
+
+	# generate next form
+	my $form = $m->scomp( '/sys/form',
+		form => $m->comp( 'SELF:form' ),
+		dfl  => $dfl, 
+		err  => $err,
+	);
+
+
+</%init>
+%################################################################
+<%method form>
+<%perl>
+
+    return [
+ { name => 'notify',  label => 'Notify list', sqlname => 'notify',
+   type => 'text', size => 32, maxlen => 1000, },
+
+ # RSN - escalate, timezone, ...
+
+ { name => 'timezone',label => 'Time Zone', sqlname => 'timezone',
+   type => 'menu', values => [ @TIMEZONES ], default => 'US/Eastern' },
+ 
+ { name => 'postal',   label => 'Postal Addr', sqlname => 'postal',
+   type => 'box',      ht => 3, wid => 30, opt => 1, },
+ 
+ { name => 'heard',   label => 'Heard about us from', sqlname => 'heard_from',
+   type => 'text', size => 32, maxlen => 1000, opt => 1, },
+
+ {name => 'type',     label => 'You are a', sqlname => 'cust_type',
+  type => 'menu', values => ['other',
+                             'sysadmin',
+                             'network admin',
+                             'CIO/CTO',
+                             'IT manager',
+                             'executive management',
+                             'web developer',
+                             'programmer',
+                             'e-commerce busn.', 
+                             'home user',
+                             'evil space monster', ], },
+
+ { type => 'submit', submit => 'Finish', },
+
+    ];
+
+</%perl>
+</%method>
+%################################################################
+<%once>
+    my @TIMEZONES = qw(US/Eastern US/Central US/Mountain US/Pacific GMT);	# XXX
+</%once>

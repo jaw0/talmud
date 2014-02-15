@@ -1,0 +1,49 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-08 22:34 (EDT)
+%# Function: add a new contact
+%#
+%# $Id: add-contact,v 1.11 2010/01/16 03:21:54 jaw Exp $
+
+<P>
+<FORM METHOD=POST ACTION="add-contact-1">
+<TABLE>
+  <&/sys/form, dfl => $dfl, err => $err, form => $m->comp('SELF:FORM', db => $db) &>
+</TABLE>
+</FORM>
+%################################################################
+<%attr>
+    title   => 'Add Contact'
+    acl	    => 'user'
+</%attr>
+%################################################################
+<%args>
+    $dfl => undef
+    $err => undef
+</%args>
+%################################################################
+<%init>
+    my $db = Talmud::db();
+</%init>
+%################################################################
+<%method FORM>
+<%args>
+    $db	=> undef
+</%args>
+<%perl>
+
+    my @catg;
+    @catg = $db->select_column("select category from mi_person_category order by category") if $db;
+
+    return [
+{ name => 'name',    label => 'Name',     type => 'text', size => 32, maxlen => 128 },
+{ name => 'email',   label => 'Email',    type => 'text', size => 32, maxlen => 128, opt => 1 },
+{ name => 'catg',    label => 'Category', type => 'menu', values => [@catg] },
+{ name => 'pubp',    label => 'Public',   type => 'menu', values => ['public', 'private'] },
+
+{ type => 'submit',   submit => 'Submit' },
+    ];
+
+</%perl>
+</%method>

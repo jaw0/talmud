@@ -1,0 +1,50 @@
+#!/usr/local/bin/perl
+# -*- perl -*-
+
+# Copyright (c) 2003 by Jeff Weisberg
+# Author: Jeff Weisberg <jaw @ tcp4me.com>
+# Date: 2003-May-03 10:56 (EDT)
+# Function:
+#
+# $Id: dropdb,v 1.2 2010/08/21 23:11:48 jaw Exp $
+
+use lib 'lib';
+use lib '../lib';
+use Talmud::SQL;
+use strict;
+
+my $db = Talmud::SQL->connect();
+
+my @sql;
+my $currtable;
+
+while(<>){
+    chop;
+
+    if( /create (table|index|sequence|view)\s+([^ ;]+)/i ){
+	unshift @sql, "drop $1 if exists $2";
+	$currtable = $2 if $1 eq 'table';
+    }
+
+    if( /create trigger\s+([^ ]+).*\s+on\s+([^ ]+)/i ){
+	unshift @sql, "drop trigger if exists $1 on $2";
+    }
+
+    if( /\s*([^ 	]+)\s+serial/ ){
+	my $x = "${currtable}_$1";
+	$x =~ s/(.{27}).*/$1/;
+	unshift @sql, "drop sequence if exists ${x}_seq";
+    }
+
+    if( /create or replace function\s+(\S+)\s*(\(.*\))/i ){
+        unshift @sql, "drop function if exists $1 $2";
+    }
+
+}
+
+for (@sql){
+    print STDERR $_, "\n";
+    eval { $db->do($_); };
+    warn "$@\n" if $@;
+}
+

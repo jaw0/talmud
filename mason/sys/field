@@ -1,0 +1,183 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-May-05 13:46 (EDT)
+%# Function: generate html input fields from template
+%#
+%# $Id: field,v 1.12 2010/08/21 23:11:48 jaw Exp $
+%#
+<%args>
+	$field
+	$dfl	=> undef
+	$err	=> {}
+        $extra  => {}
+</%args>
+%################################################################
+<%perl>
+    my( $q, $n, $d, $de );
+    my $p = $field;
+    my $me = Talmud::sess();
+
+
+    $n = $p->{name};
+    my $type = $p->{type};
+    if( defined $dfl ){
+	$d = $dfl->{$n};
+    }
+    $d = $p->{default} unless defined $d;
+    $d = CGI::param( $n ) unless defined $d;
+    $de = $m->comp('SELF:ESCAPE', val => $d);
+
+    $extra->{id} ||= $n;
+
+    if( $type eq 'raw' ){
+	print $p->{html};
+	return;
+    }
+    if( $type eq 'table' ){
+	print "<TR><TD COLSPAN=3><HR></TD></TR>\n" if $p->{how} eq '--';
+	print "<TR><TD COLSPAN=3><B>$p->{label}</B></TD></TR>\n" if $p->{how} eq '-:';
+	print "<TR><TD COLSPAN=3><TABLE BORDER=", (defined($p->{border}) ? $p->{border} : 1), ' ',
+		$p->{tableparams},
+		"><TR><TD VALIGN=TOP><TABLE CELLSPACING=0 BORDER=0>\n" if $p->{how} eq '[';
+	print "</TABLE></TD><TD VALIGN=TOP><TABLE BORDER=0>\n" if $p->{how} eq '][';
+	print "</TABLE></TD></TR></TABLE></TD></TR>\n" if $p->{how} eq ']';
+	return;
+    }
+
+
+    if( $type eq 'text' ){
+        print qq(<input type="text" name="$n");
+        print qq( value="$de") if defined $de;
+        print $m->scomp('SELF:PARAMS', param => $extra);
+        print "/>\n";
+    }
+
+    if( $type eq 'pass' ){
+        print qq(<input type="password" name="$n");
+        print qq( value="$de") if defined $de;
+        print $m->scomp('SELF:PARAMS', param => $extra);
+        print "/>\n";
+    }
+
+    elsif( $type eq 'box' ){
+        $extra->{rows} ||= $p->{ht};
+        $extra->{cols} ||= $p->{wid};
+
+        print qq(<textarea name="$n");
+        print $m->scomp('SELF:PARAMS', param => $extra);
+        print qq(>$d</textarea>\n);
+
+    }elsif( $type eq 'menu' ){
+        my @v = map{ ($_ => $_) } @{ $p->{values} };
+        $m->comp('SELF:MENU', name => $n, value => $d, values => \@v, param => $extra );
+
+    }elsif( $type eq 'hash' ){
+        my @v;
+
+	if( ref($p->{values}) eq 'HASH' ){
+            push @v, ($_ => $p->{values}{$_}) for keys %{$p->{values}};
+	}else{
+            @v = @{ $p->{values} };
+	}
+
+        $m->comp('SELF:MENU', name => $n, value => $d, values => \@v, param => $extra );
+
+
+    }elsif( $type eq 'submit' ){
+        $d ||= 'Submit';
+        print qq(<input type="submit" name="$n" value="$p->{submit}");
+        print $m->scomp('SELF:PARAMS', param => $extra);
+        print "/>\n";
+
+    }elsif( $type eq 'ro' ){
+	print (defined $d ? $d : $p->{value});
+
+    }elsif( $type eq 'note' ){
+	print "<I>". $p->{note}. "</I>\n";
+
+    }elsif( $type eq 'checkbox' ){
+        print qq(<input type="checkbox" name="$n");
+        my $ve = $m->comp('SELF:ESCAPE', val => $p->{value});
+        print qq( value="$ve") if $p->{value};
+        print $m->scomp('SELF:PARAMS', param => $extra);
+        print qq( checked="checked") if $d;
+        print "/>\n";
+
+    }elsif( $type eq 'bool' ){
+        $m->comp('SELF:MENU', name => $n, value => $d, values => [1 => 'yes', 0 => 'no'], param => $extra );
+
+    }elsif( $type eq 'date' ){
+	my $n = $p->{name};
+	my $cy = (localtime())[5] + 1900;
+	my( $dy, $dm, $dd ) = $d =~ /^(\d+)-(\d+)-(\d+)/;
+
+        my $vy = [map { ($_ => $_) } ('', $cy-5 .. $cy+5)];
+        my $vm = [ '' => '',
+            1 => 'Jan', 2 => 'Feb', 3 => 'Mar', 4 => 'Apr', 5 => 'May', 6 => 'Jun',
+            7 => 'Jul', 8 => 'Aug', 9 => 'Sep', 10 => 'Oct', 11 => 'Nov', 12 => 'Dec' ];
+        my $vd = [map { ($_ => $_) } ('', 1 .. 31)];
+
+
+	print STDERR "date dfl: $d => $dy, $dm, $dd\n";
+
+	print "<TABLE CELLPADDING=0 CELLSPACING=0><TR>";
+        print "<td>", $m->scomp('SELF:MENU', name => "${n}_y", values => $vy, value => int $dy), "</td>";
+        print "<td>", $m->scomp('SELF:MENU', name => "${n}_m", values => $vm, value => int $dm), "</td>";
+        print "<td>", $m->scomp('SELF:MENU', name => "${n}_d", values => $vd, value => int $dd), "</td>";
+	print "</TR></TABLE>";
+
+    }elsif( $type eq 'time' ){
+	my $n = $p->{name};
+	my( $dh, $dm ) = $d =~ /^(\d+):(\d+)/;
+
+        my $vh = [map { ($_ => $_) } ('', 0 .. 23)];
+        my $vm = [map { ($_ => $_) } ('', 0 .. 59)];
+
+	print "<TABLE CELLPADDING=0 CELLSPACING=0><TR>";
+        print "<td>", $m->scomp('SELF:MENU', name => "${n}_hrs", values => $vh, value => int $dh), "</td>";
+	print "<TD>:</TD>";
+        print "<td>", $m->scomp('SELF:MENU', name => "${n}_min", values => $vm, value => int $dm), "</td>";
+	print "</TR></TABLE>";
+
+    }elsif( $type eq 'upload' ){
+        print "<INPUT TYPE=file name=$p->{name}>\n";
+    }
+
+</%perl>
+%################################################################
+<%method ESCAPE>
+<%args>
+    $val    => ''
+</%args>
+<%perl>
+    HTML::Mason::Escapes::basic_html_escape( \$val );
+    return $val;
+</%perl>
+</%method>
+%################################################################
+<%method PARAMS>
+<%args>
+    $param
+</%args>
+% for my $k (keys %$param){
+    <% $k %>="<% $param->{$k} |h%>"
+%}
+</%method>
+%################################################################
+<%method MENU>
+<%args>
+    $name
+    $param      => {}
+    $values
+    $value
+</%args>
+<select name="<% $name %>" <& SELF:PARAMS, param => $param &>>
+% my @opt = @$values;
+% while( @opt ){
+%   my $v = shift @opt;
+%   my $n = shift @opt;
+    <option value="<% $v %>" <% $v eq $value ? 'selected' : '' %>><% $n %></option>
+% }
+</select>
+</%method>

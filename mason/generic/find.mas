@@ -1,0 +1,96 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-08 23:42 (EDT)
+%# Function: find an object
+%#
+%# $Id: find.mas,v 1.13 2010/08/17 14:48:02 jaw Exp $
+
+<%args>
+    $what
+</%args>
+%################################################################
+<%init>
+    my $db = Talmud::db();
+    my( $oa, $descr );
+
+    # is it an oid?
+    ($oa, $descr) = $db->select_1array("select g_obj_id, mi_object_name(g_obj_id, true) ".
+	    "from mi_g_object where g_obj_id = ?", $what);
+
+    # is it a ticket?
+    if( !$oa && $what =~ /^\#?\d+$/ ){
+	my $x = $what;
+	$x =~ s/\#//;
+
+	$oa = $db->select_scalar("select tkt_id from mi_ticket where tkt_number = ?", $x);
+	$descr = "tkt: #$x" if $oa;
+    }
+
+    # is it a user?
+    unless( $oa ){
+	$oa = $db->select_scalar( "select user_id from mi_user where lower(nickname) = lower(?)", $what);
+	$descr = "user: $what" if $oa;
+    }
+
+    unless( $oa ){
+        ($oa, $descr) = $db->select_1array("select person_id, mi_object_name(person_id, true) ".
+	    " from mi_person where lower(realname) = lower(?)", $what);
+    }
+
+    unless( $oa ){
+	($oa, $descr) = $db->select_1array("select party_id, mi_object_name(party_id, true) ".
+	    " from mi_party where lower(email) = lower(?)", $what);
+    }
+
+    # is it a facility?
+    unless( $oa ){
+      ($oa, $descr) = $db->select_1array( "select fac_id, code from mi_facility where lower(code) = lower(?)",
+    		    $what);
+    }
+
+    # is it eqmt
+    unless( $oa ){
+      ($oa, $descr) = $db->select_1array("select eqmt_id, fqdn from mi_eqmt where lower(fqdn) = lower(?)",
+    		    $what);
+    }
+
+    # eqmt by IP?
+    unless( $oa ){
+	# ($oa, $descr) = $db->select_1array( "select eqmt_id, fqdn from mi_eqmt where ipaddr = ?", $what);
+    }
+
+    # ckt id
+    unless( $oa ){
+    	($oa, $descr ) = $db->select_1array("select circuit_id, id from mi_ckt_wire where id = ?", $what);
+    }
+
+    # ipdb registry
+    unless( $oa ){
+    	($oa, $descr ) = $db->select_1array(
+    	    'select registry_id, name from mi_ipdb_registry where lower(name) = lower(?)', $what);
+    }
+
+    # ipdb allocation
+    unless( $oa ){
+    	($oa, $descr ) = $db->select_1array(
+    	    'select meta_id, netname from mi_ipdb_meta where lower(netname) = lower(?)', $what);
+    }
+
+    # ipdb block
+    if( !$oa && $what =~ /^(\d+\.\d+\.\d+\.\d+)\/(\d+)$/ ){
+    	my( $n, $s ) = ($1, $2);
+    	($oa, $descr ) = $db->select_1array(
+    	    'select block_id, mi_object_name(block_id, false) from mi_ipdb_block where netblock = ? and size = ?',
+    	    $n, $s );
+    }
+
+    # a document?
+    unless( $oa ){
+    	($oa, $descr) = $db->select_1array("select content_id, summary from mi_content_version ".
+	    "where current_version_p and lower(summary) = lower(?)", $what);
+    }
+
+
+    return ($oa, $descr);
+</%init>

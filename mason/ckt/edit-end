@@ -1,0 +1,42 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-22 16:48 (EDT)
+%# Function: edit ckt end data
+%#
+%# $Id: edit-end,v 1.9 2010/01/16 05:35:11 jaw Exp $
+
+<DIV CLASS=CONTEXT>Circuit &rarr; Edit &rarr; <% $name %></DIV>
+<P>
+<FORM METHOD=POST ACTION="edit-end-1">
+<INPUT TYPE=HIDDEN NAME=oid VALUE="<% $oid %>">
+<TABLE>
+  <&/sys/form, dfl => $dfl, err => $err, form => $form &>
+</TABLE>
+</FORM>
+%################################################################
+<%attr>
+    title   => 'Edit Circuit'
+    acl	    => 'staff :w'
+</%attr>
+%################################################################
+<%args>
+    $oid
+    $dfl => undef
+    $err => undef
+</%args>
+%################################################################
+<%init>
+    my $s  = Talmud::sess();
+    my $db = Talmud::db();
+
+    my $name = $db->select_scalar("select mi_object_name(?, false)", $oid );
+    my $form = $m->comp('forms.mas:end', db => $db);
+
+    unless( $dfl ){
+	my $h = $db->select_1hashref("select * from mi_ckt_end where ckt_end_id = ?", $oid);
+
+	$dfl = $m->comp( '/sys/form:dfl_from_sql', data => $h, form => $form, sqlcol => 'sql' );
+    }
+
+</%init>

@@ -1,0 +1,82 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-09 11:38 (EDT)
+%# Function: adjust ticket param and redirect
+%#
+%# $Id: adjust-tkt,v 1.13 2010/08/21 20:18:31 jaw Exp $
+
+<%attr>
+    title   => 'Adjust Ticket'
+    acl	    => 'staff :w'
+</%attr>
+%################################################################
+<%args>
+    $oid
+    $s	=> undef
+    $o	=> undef
+    $url	=> undef
+</%args>
+%################################################################
+<%init>
+    my $se = Talmud::sess();
+    my $db = Talmud::db();
+    my( $details, $data );
+
+    eval {
+	$db->start();
+
+	if( $o ){
+	    $db->update_hash('mi_task', {
+	        owner     => $se->{auth}{uid},
+	    }, [ task_id => $oid ] );
+
+	    $s = 'active';
+	    $details = "changed owner to $se->{auth}{user}";
+	}
+
+	if( $s ){
+	    my $st = $db->select_scalar('select status_id from mi_tkt_status where name = ?', $s);
+	    $db->update_hash('mi_ticket', {
+	        status_id	=> $st,
+	    }, [ tkt_id => $oid ] );
+
+	    $details ||= "changed status to $s";
+	}
+
+	Talmud::touch_object( $db, $oid, $details );
+
+	# create event
+	my $eid = Talmud::create_object($db, 'tkt/event');
+
+	my $own = $db->select_scalar('select owner from mi_task where task_id = ?', $oid);
+	my $sts = $db->select_scalar('select status_id from mi_ticket where tkt_id = ?', $oid);
+
+	$db->insert_hash('mi_tkt_event', {
+	    event_id	=> $eid,
+	    tkt_id	=> $oid,
+	    event_who	=> $se->{auth}{uid},
+	    action	=> 'update',
+	    details	=> $details,
+	    owner	=> $own,
+	    status_id	=> $sts,
+	} );
+
+	$db->commit();
+
+	# RSN - send notifications?
+    };
+
+    if( $@ ){
+	my $emsg = $@;
+	$emsg = $db->error_sanitize( $emsg );
+	$db->rollback();
+	$m->comp('/sys/error.mas', msg => $emsg);
+	return $m->comp( 'view-tkt', oid => $oid );
+    }
+
+
+    # QQQ - redirect where?
+    $m->comp('/sys/redirect.mas', where => $url || "/tkt/view-tkt?oid=$oid" );
+
+</%init>

@@ -1,0 +1,47 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-10 10:54 (EDT)
+%# Function: fetch and spew non-html content
+%#
+%# $Id: fetch-content,v 1.9 2010/01/16 03:22:02 jaw Exp $
+
+<%flags>
+    inherit => '/aclhandler'
+</%flags>
+%################################################################
+<%attr>
+    acl	    => undef
+</%attr>
+%################################################################
+<%args>
+    $oid
+</%args>
+%################################################################
+<%init>
+    my $db = Talmud::db();
+
+    my $h = $db->select_1hashref($m->scomp('SELF:CONTENT'), $oid);
+
+    my $type = $type_map{ $h->{mime_type} } || $h->{mime_type};
+    $r->content_type( $type );
+    $m->clear_buffer();
+
+    print $h->{content};
+
+    $m->abort(200);
+</%init>
+%################################################################
+<%method CONTENT>
+SELECT content_id, content, mime_type
+  FROM mi_content
+    INNER JOIN mi_content_version USING (content_id)
+  WHERE content_id = ?
+    AND current_version_p
+</%method>
+%################################################################
+<%once>
+my %type_map = (
+    'text/rfc822-headers'	=> 'text/plain',
+);
+</%once>

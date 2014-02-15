@@ -1,0 +1,55 @@
+%# -*- mason -*-
+%# Copyright (c) 2004 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Created: 2004-Jan-08 17:29 (EST)
+%# Function: add argus user
+%#
+%# $Id: add-user,v 1.1 2007/04/23 02:44:58 jaw Exp $
+
+
+<DIV CLASS=CONTEXT>Monitoring &rarr; Add User</DIV>
+<P>
+<FORM METHOD=POST ACTION="add-user-1">
+<TABLE>
+<% $form |n%>
+</TABLE>
+</FORM>
+%################################################################
+<%attr>
+	title	=> 'Add User'
+	acl	=> 'staff'
+</%attr>
+%################################################################
+<%args>
+	$dfl => undef
+	$err => undef
+</%args>
+%################################################################
+<%init>
+	my $form = $m->scomp( '/sys/form',
+		form => $m->comp( 'SELF:form' ),
+		dfl  => $dfl, 
+		err  => $err,
+	);
+</%init>
+%################################################################
+<%method form>
+<%perl>
+
+	return [
+ { name => 'fullname', label => 'Real Name',  sqlname => 'realname',
+   type => 'text', size => 32, maxlen => 200 },
+ 
+ { name => 'email',    label => 'Email',      sqlname => 'email',
+   type => 'text', size => 32, maxlen => 200 },
+ 
+ { name => 'passwd',   label => 'Password',   sqlname => 'passwd',
+   type => 'pass', size => 32, maxlen => 200, },
+ 
+ { name => 'again',   label => ' ... Again',   
+   type => 'pass', size => 32, maxlen => 200, },
+
+ { type => 'submit', submit => 'Next ->' },
+    ];
+</%perl>
+</%method>

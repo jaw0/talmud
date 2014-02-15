@@ -1,0 +1,46 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Created: 2003-Nov-05 23:36 (EST)
+%# Function: process edit config form
+%#
+%# $Id: edit-config-1,v 1.6 2010/08/29 14:45:00 jaw Exp $
+
+<%attr>
+    title => 'Edit Config'
+    acl   => 'secoper'
+</%attr>
+%################################################################
+<%args>
+
+</%args>
+%################################################################
+<%init>
+    my $db = Talmud::db();
+
+    my @a = $db->select_column('select param from mi_sys_config');
+
+    eval {
+	$db->start();
+
+        foreach my $p (@a){
+            my $v = defined($ARGS{$p}) ? $ARGS{$p} : undef;
+            $db->update_hash('mi_sys_config', {
+                value => $v,
+            }, [ param => $p ] );
+        }
+
+        $db->commit();
+    };
+
+    if( $@ ){
+        my $emsg = $@;
+        $emsg = $db->error_sanitize( $emsg );
+        $db->rollback();
+        $m->comp('/sys/error.mas', msg => $emsg);
+        return $m->comp( 'edit-config', dfl => \%ARGS );
+    }
+
+    $m->comp('/sys/redirect.mas', where => "/");
+
+</%init>

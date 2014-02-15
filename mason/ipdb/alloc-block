@@ -1,0 +1,86 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-30 12:37 (EST)
+%# Function: present a form to request a netblock allocation
+%#
+%# $Id: alloc-block,v 1.8 2010/01/16 03:22:05 jaw Exp $
+
+<P>
+<FORM METHOD=POST ACTION="alloc-block-1">
+<TABLE CELLSPACING=0>
+  <&/sys/form, dfl => $dfl, err => $err, form => $m->comp('SELF:FORM', db => $db) &>
+</TABLE>
+</FORM>
+%################################################################
+<%attr>
+    title => 'Allocate New Block'
+    acl   => 'staff'
+</%attr>
+%################################################################
+<%args>
+    $dfl => undef
+    $err => undef
+</%args>
+%################################################################
+<%init>
+    my $db = Talmud::db();
+</%init>
+%################################################################
+<%method FORM>
+<%args>
+    $db	=> undef
+</%args>
+<%perl>
+    my @pool;
+    if( $db ){
+	@pool = $db->select_column('select name from mi_ipdb_pool order by name');
+	unshift @pool, '';
+    }
+
+    return [
+# other pages depend on size being first
+{ name => 'size',   label => 'Size',        type => 'menu', values => [1..32], default => 28, sql => 'size' },
+{ name => 'pool',   label => 'Pool',        type => 'menu', sql => 'pool', values => \@pool },
+{ name => 'usage',  label => 'Used For',    type => 'menu', values => [qw/internal customer employee/], sql => 'usage' },
+{ name => 'descr',  label => 'Description', type => 'text', size => 32, maxlen => 200, sql => 'descr',
+	hint => 'what is the block being used for' },
+
+# { type => 'table', how => '--' },
+{ label => '&nbsp;<BR>', type => 'ro' },
+
+{ label => 'Customer Data:', type => 'ro' },
+{ type => 'table', how => '[', border => 0, tableparams => 'cellpadding=0 cellspacing=0 width="100%" bgcolor="#8888FF"' },
+
+{ name => 'custnm',  label => 'Customer Name',  type => 'text',  size => 32, maxlen => 64, optx => 1 },
+{ name => 'custid',  label => 'Cust ID', type => 'text', size => 32, maxlen => 64, optx => 1  },
+{ name => 'phone',   label => 'Phone',   type => 'text', size => 32, maxlen => 64, optx => 1  },
+{ name => 'domain',  label => 'Domain',  type => 'text', size => 32, maxlen => 64, optx => 1  },
+{ name => 'strt1',   label => 'Street',  type => 'text', size => 32, maxlen => 64, optx => 1  },
+{ name => 'strt2',   label => '',        type => 'text', size => 32, maxlen => 64, optx => 1  },
+  { type => 'table', how => '[', border => 0, },
+  { name => 'city',    label => 'City',    type => 'text', size => 16, maxlen => 64, optx => 1  },
+  { type => 'table', how => '][', border => 0, },
+  { name => 'state',   label => 'State',   type => 'text', size => 2, maxlen => 2, optx => 1  },
+  { type => 'table', how => '][', border => 0, },
+  { name => 'zipc',    label => 'Zip',     type => 'text', size => 10, maxlen => 10, optx => 1  },
+  { type => 'table', how => '][', border => 0, },
+  { name => 'cnty',    label => 'Country',   type => 'text', size => 2, maxlen => 4, default => 'US', optx => 1  },
+  { type => 'table', how => ']' },
+{ label => '<P>', type => 'ro' },
+{ name => 'swip',  label => 'SWIP ID',  type => 'text', size => 32, maxlen => 64, sql => 'swip_id', 
+	hint => 'SWIP ID, leave blank to autogenerate', opt => 1 },
+{ name => 'swipp', label => 'Send SWIP', type => 'bool' },
+{ name => 'just',   label => 'Justification form on file', type => 'bool', default => 'no', sql => 'justified_p' },
+
+
+{ type => 'table', how => ']' },
+
+
+# cust data
+
+# ...
+{ type => 'submit',   submit => 'Submit' },
+    ];
+</%perl>
+</%method>

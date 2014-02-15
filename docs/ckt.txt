@@ -1,0 +1,88 @@
+
+now:
+	start with simple datamodel (nocdb)
+later:
+	complexify
+
+
+why track ckts
+================
+	report problems to telco
+	audit telco bills
+
+
+
+needs to handle
+================
+p-2-p ckts
+	to 3rd party
+	us on both ends
+
+fr
+	hub ckt
+	pvc to 3rd party
+	pvc for us
+
+channelized
+	hub ckt
+	channels to 3rd party
+	channels for us
+
+
+
+
+
+================================================================
+
+view ckt:
+
+
+	data  |   eqmt [a]    | comments 
+	data  |   eqmt [a]    |
+        [edit]|   contact [a] |
+	                      |
+
+
+	wire--------------+   |
+	|  data           |   |
+	|                 |   |
+	|  comments       |   |
+	+-----------------+   |
+	wire--------------+   |
+	|  data           |   |
+	|                 |   |
+	|  comments       |   |
+	+-----------------+   |
+	                      |
+	[attach] [new wire]
+
+
+=> wires, eqmt, contacts, etc
+	attached via map
+	either listed or
+	as block (if data or comment on attachment)
+	if listed, link to view and edit attachment
+
+================================================================
+
+do ckt / wire have any fields at all?
+or is all data via data table? (even required data)
+
+
+wire:
+	physical type
+	cktid
+	telco name
+	telco contact	- attached
+	facility	- attached
+	postal
+
+	dlci, e164, vci/vpi, channels, ...
+
+ckt:
+	status
+	srvctype
+	encap
+
+	
+	

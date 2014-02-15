@@ -1,0 +1,55 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-09 09:38 (EDT)
+%# Function: process edit facility form and redirect
+%#
+%# $Id: edit-facility-1,v 1.8 2010/01/16 05:35:14 jaw Exp $
+
+<%attr>
+	title	=> 'Edit Facility'
+	acl	=> 'staff :w'
+</%attr>
+%################################################################
+<%args>
+	$oid
+</%args>
+%################################################################
+<%init>
+	my $db = Talmud::db();
+	my $s  = Talmud::sess();
+
+	my $form = $m->comp('add-facility:form');
+
+	$m->comp('/sys/form:fixup', form => $form, args => \%ARGS);
+	my $err = $m->comp('/sys/form:validate', form => $form, args => \%ARGS);
+	if( $err ){
+		return $m->comp( 'edit-facility', err => $err, dfl => \%ARGS );
+	}
+
+	eval {
+		$db->start();
+
+		my $data = $m->comp('/sys/form:sql_from_form',
+			form   => $form,
+			args   => \%ARGS,
+			sqlcol => 'sqlname',
+		);
+
+		$db->update_hash('mi_facility', $data, [fac_id => $oid] );
+
+		Talmud::touch_object( $db, $oid );
+
+		$db->commit();
+	};
+
+    	if( $@ ){
+    	     my $emsg = $@;
+    	     $emsg = $db->error_sanitize( $emsg );
+    	     $db->rollback();
+    	     $m->comp('/sys/error.mas', msg => $emsg);
+    	     return $m->comp( 'edit-facility', dfl => \%ARGS );
+    	}
+    
+	$m->comp('/sys/redirect.mas', where => "/eqmt/view-facility?oid=$oid" );
+</%init>

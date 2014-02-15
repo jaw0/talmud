@@ -1,0 +1,53 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-09 09:24 (EDT)
+%# Function: add a new facility
+%#
+%# $Id: add-facility,v 1.9 2010/01/16 05:35:12 jaw Exp $
+
+<H3>Add Facility</H3>
+<P>
+<FORM METHOD=POST ACTION="add-facility-1">
+<TABLE>
+<% $form |n%>
+</TABLE>
+</FORM>
+%################################################################
+<%attr>
+	title	=> 'Add Facility'
+	acl	=> 'staff'
+</%attr>
+%################################################################
+<%args>
+	$dfl => undef
+	$err => undef
+</%args>
+%################################################################
+<%init>
+	my $form = $m->scomp( '/sys/form',
+		form => $m->comp( 'SELF:form' ),
+		dfl  => $dfl, 
+		err  => $err,
+	);
+
+</%init>
+%################################################################
+<%method form>
+<%perl>
+	my $db = Talmud::db();
+
+	my @factype = $db->select_column("select name from mi_fac_type");
+
+	return [
+{ name => 'name',  label => 'Name', type => 'text', size => 32, maxlen => 128, sqlname => 'name' },
+{ name => 'code',  label => 'Code', type => 'text', size => 16, maxlen => 16,  sqlname => 'code' },
+{ name => 'npa',   label => 'NPA',  type => 'text', size => 3, maxlen => 3,    sqlname => 'npa'  },
+{ name => 'nxx',   label => 'NXX',  type => 'text', size => 3, maxlen => 3,    sqlname => 'nxx'  },
+{ name => 'fact',  label => 'Type', type => 'menu', values => [@factype], sqlname => 'fac_type' },
+{ name => 'postal',label => 'Postal Address',  type => 'box', ht => 5, wid => 30, sqlname => 'postal' },
+
+{ type => 'submit',   submit => 'Submit' },
+	];
+</%perl>
+</%method>

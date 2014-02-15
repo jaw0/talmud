@@ -1,0 +1,13 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-26 14:43 (EST)
+%# Function: 
+%#
+%# $Id: autohandler,v 1.2 2003/11/12 04:58:10 jaw Exp $
+
+<DIV CLASS=SUBNAV>
+<A HREF="list-forums">List Forums</A> &nbsp;&nbsp;&nbsp;
+<A HREF="add-forum">Add Forum</A> &nbsp;&nbsp;&nbsp;
+</DIV>
+% $m->call_next();

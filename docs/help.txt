@@ -1,0 +1,25 @@
+
+popup help
+================================================================
+
+want:
+
+	help text in same file as component
+
+
+
+impl:
+
+	<%method help>		generates help content
+
+	top level 'help' component finds help on requested topic
+
+	help methods will need to be registered somehow
+
+		<%once> will not get run until component is used
+
+		script to search and find
+
+
+
+

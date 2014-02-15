@@ -1,0 +1,14 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-09 09:27 (EDT)
+%# Function: 
+%#
+%# $Id: autohandler,v 1.2 2003/11/12 23:57:12 jaw Exp $
+
+<DIV CLASS=SUBNAV>
+<A HREF="add-ckt">New Ckt</A> &nbsp;&nbsp;&nbsp;
+<A HREF="list-ckts">List Ckts</A> &nbsp;&nbsp;&nbsp;
+
+</DIV>
+% $m->call_next();

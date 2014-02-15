@@ -1,0 +1,134 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-09 00:12 (EDT)
+%# Function: display a document
+%#
+%# $Id: view,v 1.14 2010/08/21 16:06:53 jaw Exp $
+
+<& /generic/context.mas, oid => $oid &><P>
+
+<TABLE CLASS="DOC-VIEW"><TR><TD VALIGN=TOP>
+<DIV CLASS="DOC-HDR">
+<H2><% $h->{summary} %></H2>
+<div style="float: right;"><& /bkmk/widget.mas, oid => $oid &></div>
+<TT>Last Modified: <% $h->{date} %></TT><BR>
+<TT>By: <& /sys/widgets:userlink, oid => $h->{user} &></TT><BR>
+</DIV>
+<P>
+<DIV CLASS="DOC-CONTENT"><% $ content |n%></DIV>
+<P>
+
+<TABLE><TR><TD>
+<& /sys/widgets:button, label => 'Edit', url => "/generic/edit-content?oid=$oid" &>
+</TD><TD>
+<& /sys/widgets:button, label => 'Add Node', url => "/doc/add-etp?oid=$oid" &>
+</TD></TR></TABLE>
+
+</TD>
+<TD VALIGN=TOP WIDTH=1 CLASS=VERTLINE><BR></TD>
+<TD VALIGN=TOP CLASS="COMMENT-COL">
+
+<B>Comments</B><BR>
+<& /generic/comments.mas, oid => $oid, fnc => '/doc/view', wide => 0 &>
+</TD></TR></TABLE>
+%################################################################
+<%attr>
+    title   => 'View Documnet'
+    acl	    => ':r'
+</%attr>
+%################################################################
+<%args>
+    $oid
+</%args>
+%################################################################
+<%init>
+    my $db = Talmud::db();
+
+    my $h = $db->select_1hashref($m->scomp('SELF:CONTENT'), $oid);
+
+    my $content = $m->scomp( '/generic/rendercontent.mas',
+		mime    => $h->{mime_type},
+		charset => $h->{charset},
+		content => $h->{content},
+		oid     => $h->{content_id},
+		);
+
+    my @children = $m->comp( 'SELF:children',
+    		db     => $db,
+		oid    => $oid,
+		);
+
+    if( $content =~ /<children/i ){
+	my ($tags) = $content =~ /<children\s*([^<>]*)>/i;
+
+	my($layout) = $tags =~ /layout=\"([^\"]+)\"/i;
+	my($cols)   = $tags =~ /cols=\"([^\"]+)\"/i;
+	$cols ||= 1;
+
+	print STDERR "tags $tags, layout $layout, cols $cols\n";
+
+	my $c;
+	if( $layout eq 'table' ){
+	    my $n;
+	    foreach my $l (@children){
+		$c .= '<TR>' if $n % $cols == 0;
+		$c .= "<TD>$l</TD>";
+		$c .= "</TR>\n" if ++$n % $cols == 0;
+	    }
+	    $c .= "</TR>" unless $n % $cols == 0;
+	}
+	else{
+	    $c = join('', map { "<LI>$_" } @children);
+	}
+
+	$content =~ s/<children[^<>]*>/$c/i;
+    }else{
+	$content .= "<UL>\n" . join('', map { "<LI>$_" } @children) . "</UL>\n";
+    }
+
+</%init>
+%################################################################
+<%method CONTENT>
+SELECT content_id, content, mime_type, charset, summary, sortkey,
+    created_user, to_char(COALESCE(modified_date, created_date), 'HH24:MI DD Mon YYYY') AS date,
+    COALESCE(modified_user, created_user) AS user
+  FROM mi_content
+    INNER JOIN mi_g_object ON (mi_content.content_id = mi_g_object.g_obj_id)
+    INNER JOIN mi_content_version USING (content_id)
+  WHERE content_type = 'etp'
+    AND content_id = ?
+    AND current_version_p
+</%method>
+%################################################################
+<%method children>
+<%args>
+    $db
+    $oid
+    $layout => undef
+</%args>
+<%perl>
+
+    my $stmt = <<EOSQL;
+SELECT content_id, summary
+  FROM mi_content
+    INNER JOIN mi_content_version USING (content_id)
+    INNER JOIN mi_g_object ON (content_id = g_obj_id)
+  WHERE refers_to = ?
+    AND status = 'active'
+    AND content_type = 'etp'
+    AND current_version_p
+  ORDER BY sortkey
+EOSQL
+    ;
+
+    my $st = $db->do($stmt, $oid);
+    my @c;
+    while( my $h = $st->fetchrow_hashref ){
+	push @c, "<A HREF=\"/doc/view?oid=$h->{content_id}\">$h->{summary}</A>\n";
+    }
+
+    return @c;
+</%perl>
+</%method>
+%################################################################

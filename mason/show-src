@@ -1,0 +1,136 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-14 18:57 (EDT)
+%# Function: display the src code of a file
+%#
+%# $Id: show-src,v 1.7 2010/01/16 03:21:50 jaw Exp $
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD><TITLE>Show Source - <% $file %></TITLE>
+<STYLE TYPE="text/css"><!--
+    BODY {
+	background-color:   #FFF;
+    }
+    A {
+	color:		    #000;
+    }
+    DIV {
+	margin-bottom:	    -1em;
+    }
+
+    .SEP {
+	color:		    #DDD;
+	background-color:   #888;
+    }
+    .COMMENT {
+	font-style:	    italic;
+	color:		    #888;
+    }
+    .INLINE {
+	background-color:   #CFC;
+    }
+    .ATTR {
+	background-color:   #FCC;
+    }
+    .PERL {
+	background-color:   #CCF;
+    }
+    .PERL .MAYBECOMMENT {
+	font-style:	    italic;
+	color:		    #444;
+    }
+    .DEF {
+	background-color:   #EEE;
+	padding-left:	    1em;
+	padding-right:	    1em;
+	border-style:	    solid;
+	border-width:	    thin;
+    }
+
+    .COMMENT > .XXX, .MAYBECOMMENT > .XXX {
+	color:		    #F00;
+	text-decoration:    blink;
+	font-weight:	    bold;
+    }
+
+    .COMMENT > .QQQ, .MAYBECOMMENT > .QQQ {
+	text-decoration:    blink;
+	font-weight:	    bold;
+    }
+
+    .COMMENT > .RSN, .MAYBECOMMENT > .RSN {
+	text-decoration:    blink;
+	font-weight:	    bold;
+    }
+
+
+--></STYLE>
+</HEAD>
+<BODY>
+<PRE>
+<% $code |n%>
+</PRE>
+</BODY>
+</HTML>
+%################################################################
+<%flags>
+	inherit => undef
+</%flags>
+%################################################################
+<%args>
+	$p
+</%args>
+%################################################################
+<%init>
+	my $file = $p;
+	$p =~ s,/\.\./,,g;
+	$p = Talmud::root() . $p;
+	my $code;
+
+	$p = "$p/index.html" if -d $p;
+	open( F, $p ) || $m->comp('/error', msg => "Cannot open file: $!");
+
+	while( <F> ){
+	    s/&/&amp;/g;
+	    s/</&lt;/g;
+	    s/>/&gt;/g;
+
+	    s!(^%##+)$!<DIV CLASS=SEP>$1</DIV>!;		    # %##### separator comment
+	    s/^(%#.*)/<SPAN CLASS=COMMENT>$1<\/SPAN>/;		    # %# comments
+
+	    s/(&lt;!--)/<SPAN CLASS=COMMENT>$1/g;		    # <!-- comments -->
+	    s/(--&gt;)/$1<\/SPAN>/g;
+
+	    s/(\s|^)(#.*)/$1<SPAN CLASS=MAYBECOMMENT>$2<\/SPAN>/;   # maybe a perl comment
+
+	    s/(&lt;% )/<SPAN CLASS=INLINE>$1/g;			    # < % code %>
+	    s/(%&gt;)/$1<\/SPAN>/g;
+
+	    s/(&lt;&amp;)/<SPAN CLASS=INLINE>$1/g;		    # < & comp &>
+	    s/(&amp;&gt;)/$1<\/SPAN>/g;
+
+	    s/(&lt;\/&amp;&gt;)/<SPAN CLASS=INLINE>$1<\/SPAN>/g;    # lone < /&>
+
+	    s/^(%.*)/<SPAN CLASS=PERL>$1<\/SPAN>/;		    # % perl
+
+	    s/(&lt;%(attr|args|flags)&gt;)/<DIV CLASS=ATTR>$1/;	    # < %args>, ... blocks
+	    s/(&lt;\/%(attr|args|flags)&gt;)/$1<\/DIV>/;
+
+	    s/(&lt;%(init|perl|once|shared|cleanup|filter)&gt;)/<DIV CLASS=PERL>$1/;	# < %init>, ... blocks
+	    s/(&lt;\/%(init|perl|once|shared|cleanup|filter)&gt;)/$1<\/DIV>/;
+
+	    s/(&lt;%(method|def)(.*?)&gt;)/<DIV CLASS=DEF>$1/;	    # < %method>, < %def> blocks
+	    s/(&lt;\/%(method|def)&gt;)/$1<\/DIV>/;
+
+	    s%(['"])(/\w[^'",:\?\;\$]+)%$1<A HREF="/show-src?p=$2">$2</A>%g;	    # link to page or component
+	    s/(&lt;&amp;\s+)(\/[^\s,:]+)/$1<A HREF="\/show-src?p=$2">$2<\/A>/g;	    # link to component
+
+	    s%(XXX|QQQ|RSN)%<SPAN CLASS=$1>$1</SPAN>%g;
+
+	    $code .= $_;
+	}
+	close F;
+
+</%init>

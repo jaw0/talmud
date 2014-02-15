@@ -1,0 +1,32 @@
+
+
+$r	isa Apache::Request
+
+
+set type:
+   $r->content_type('text/plain');
+
+upload:
+  $upload = $r->upload();
+
+  $upload->fh()
+	->filename()
+	->size()
+	->info(...)
+	->type()
+	->tempname()
+
+
+send non-html:
+   $r->content_type('image/gif');
+   $m->clear_buffer;
+   print ...;
+   $m->abort(OK);
+
+
+
+================================================================
+
+workorder:
+	fill in form
+	sequence of tkts are created

@@ -1,0 +1,44 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-09 11:00 (EDT)
+%# Function: add a new group
+%#
+%# $Id: add-group,v 1.4 2003/11/12 23:57:20 jaw Exp $
+
+<H3>Add Group</H3>
+<P>
+<FORM METHOD=POST ACTION="add-group-1">
+<TABLE>
+<% $form |n%>
+</TABLE>
+</FORM>
+%################################################################
+<%attr>
+	title	=> 'Add Group'
+	acl	=> 'secadmin acctadmin :-'
+</%attr>
+%################################################################
+<%args>
+	$dfl => undef
+	$err => undef
+</%args>
+%################################################################
+<%init>
+	my $form = $m->scomp( '/sys/form',
+		form => $m->comp( 'SELF:form' ),
+		# no defaults
+		err  => $err,
+	);
+
+</%init>
+%################################################################
+<%method form>
+<%perl>
+	return [
+{ name => 'group',   label => 'Name',  type => 'text', size => 32, maxlen => 128 },
+{ name => 'descr',   label => 'Descr', type => 'text', size => 32, maxlen => 128 },
+{ type => 'submit',   submit => 'Submit' },
+	];
+</%perl>
+</%method>

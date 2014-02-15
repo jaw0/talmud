@@ -1,0 +1,75 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-08 23:08 (EDT)
+%# Function: list contacts
+%#
+%# $Id: list-contacts,v 1.10 2010/01/16 03:21:54 jaw Exp $
+<DIV CLASS=CONTEXT>Contacts &rarr; List</DIV>
+<P>
+
+<FORM>
+<TABLE>
+    <% $form |n%>
+</TABLE>
+</FORM>
+
+<TABLE>
+% while( my $r = $st->fetchrow_hashref() ){
+    <TR><TD><A HREF="/<% $r->{url} %>"><% $r->{name} %></A></TD></TR>
+% }
+</%perl>
+</TABLE>
+%################################################################
+<%attr>
+    title   => 'List Contacts'
+    acl	    => 'user'
+</%attr>
+%################################################################
+<%args>
+    $catg   => undef
+    $pubp   => 'private'	# public, private, [all]
+</%args>
+%################################################################
+<%init>
+    my $db = Talmud::db();
+    my $s  = Talmud::sess();
+    my $q  = $s->{q};
+
+    my( @wh, $wh );
+
+    # build where clause for select
+    if( $catg && $catg ne 'all' ){
+	$wh .= ' and category = ?';
+	push @wh, $catg;
+    }
+
+    if( $pubp eq 'public' ){
+        $wh .= ' and public_p';
+
+    }elsif( $pubp eq 'private' ){
+        $wh .= ' and not public_p and coalesce(g_obj_owner, created_user) = ?';
+        push @wh, $s->{auth}{uid};
+    }else{
+        # default => public + mine
+        $wh .= ' and (public_p or coalesce(g_obj_owner, created_user) = ?)';
+        push @wh, $s->{auth}{uid};
+    }
+    
+    $wh =~ s/^\s*and\s+//;
+    $wh = "where $wh" if $wh;
+
+    my $st = $db->do(
+    	"select realname as name, mi_object_fullurl(person_id) as url from mi_person inner join mi_g_object on" .
+    	" (person_id = g_obj_id) $wh order by person_id", @wh
+    	);
+
+    my @catg = $db->select_column("select category from mi_person_category order by category" );
+
+    # create simple selection form
+    my $form = "<TR><TD>" . $q->popup_menu('catg', ['all', @catg], $catg || 'all') . "</TD><TD>" .
+	$q->popup_menu('pubp', ['all', 'public', 'private'], $pubp) . "</TD><TD>".
+	$q->submit('List', 'List') . "</TD></TR>";
+
+</%init>
+

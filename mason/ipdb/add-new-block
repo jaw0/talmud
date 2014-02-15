@@ -1,0 +1,56 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-30 12:36 (EST)
+%# Function: 
+%#
+%# $Id: add-new-block,v 1.9 2010/01/16 03:22:04 jaw Exp $
+
+<FORM METHOD=POST ACTION="add-new-block-1">
+<TABLE>
+  <&/sys/form, dfl => $dfl, err => $err, form => $m->comp('SELF:FORM', db => $db) &>
+</TABLE>
+</FORM>
+%################################################################
+<%attr>
+    title => 'Add New Block'
+    acl   => 'ipdbadmin'
+</%attr>
+%################################################################
+<%args>
+    $dfl => undef
+    $err => undef
+</%args>
+%################################################################
+<%init>
+    my $db = Talmud::db();
+</%init>
+%################################################################
+<%method FORM>
+<%args>
+    $db	=> undef
+</%args>
+<%perl>
+    my( @reg, @pool);
+    if( $db ){
+	@reg  = $db->select_2columns('select registry_id, name from mi_ipdb_registry order by name');
+	@pool = $db->select_1column('select name from mi_ipdb_pool order by name');
+	unshift @pool, '';
+    }
+
+    return [
+{ name => 'block',  label => 'Net Block',   type => 'text', size => 32, maxlen => 32, sql => 'netblock',
+	hint => 'A.B.C.D', validate => \&IPDB::valid_inet },
+{ name => 'size',   label => 'Block Size',  type => 'menu', values => [1 .. 32], sql => 'size', default => 19 },
+{ name => 'name',   label => 'Net Name',    type => 'text', size => 32, maxlen => 32, sql => 'netname',
+	hint => 'The name given to the allocation by the regsitry' },
+{ name => 'swip',   label => 'SWIP prefix', type => 'text', size => 32, maxlen => 32, sql => 'swipprefix',
+	hint => 'the prefix you want to use for swips', opt => 1 },
+{ name => 'regy',   label => 'Registry',    type => 'hash', sql => 'registry_id', values => \@reg },
+{ name => 'pool',   label => 'Pool',        type => 'menu', values => \@pool },
+
+# ...
+{ type => 'submit',   submit => 'Submit' },
+    ];
+</%perl>
+</%method>

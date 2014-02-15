@@ -1,0 +1,38 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-08 23:43 (EDT)
+%# Function: list new or updated content
+%#
+%# $Id: list-new-content.mas,v 1.8 2010/01/16 03:22:03 jaw Exp $
+
+% while( my $r = $st->fetchrow_hashref ){
+	<A HREF="<% $url %>?oid=<% $r->{content_id} %>" TITLE="updated <% $r->{modified} %>"><%$r->{summary} %></A><BR>
+% }
+%################################################################
+<%args>
+    $n
+    $catg
+    $url
+</%args>
+%################################################################
+<%init>
+    my $db = Talmud::db();
+    my $st = $db->do($m->scomp('SELF:CONT', n => $n), $catg);
+
+</%init>
+%################################################################
+<%method CONT>
+<%args>
+    $n
+</%args>
+SELECT content_id, summary, to_char(coalesce(modified_date, created_date), 'HH24:MI DD Mon') as modified
+  FROM mi_content
+    INNER JOIN mi_g_object ON (mi_content.content_id = mi_g_object.g_obj_id)
+    INNER JOIN mi_content_version USING (content_id)
+  WHERE status = 'active'
+    AND content_type = ?
+    AND current_version_p
+  ORDER BY COALESCE(modified_date, created_date) DESC
+  LIMIT <% $n + 0 %>
+</%method>

@@ -1,0 +1,90 @@
+
+now:
+	popup help system
+
+later:
+	improved group admin
+
+	/generic/edit-acl
+
+	my
+		edit-prefs
+
+	cleanup
+
+	etp templates
+
+	documentation
+
+	self contained pkgs
+
+	more ckt add
+
+	better css
+
+	statsistics	- obj hits, sql timings,
+
+write packages:
+
+	todo list, task manager, project manager, ...
+
+	calendar
+
+	mailing spam
+
+	workorder
+
+	imagedb
+
+	isp billing system
+
+	ciddac
+		objects: sites, participants, rcads, billing*
+		functions: add/edit/view 
+		and: export to other db
+
+================================================================
+http://linas.org/linux/pm.html
+
+================================================================
+
+how to install
+
+modernize
+
+clean up
+
+eqmt importance => dev? | class = prod | dev | qa | core
+=> generic, configurable params
+
+table sorting, filtering
+
+rack view
+
+html editor
+
+
+tkt email
+
+sortable - filters
+
+
+g_obj_rel => why is it set via trigger?
+
+forums - less ugly
+
+style++
+
+custom themes?
+
+buddy icons
+
+tkt reports
+
+eqmt bulk edit
+
+preview
+
+ticket edit
+
+

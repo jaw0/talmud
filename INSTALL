@@ -1,0 +1,16 @@
+
+
+
+PerlRequire /home/athena/jaw/projects/talmud/lib/talmud-handler.pl
+<VirtualHost *>
+    ServerName		talmud.tcp4me.com
+    DocumentRoot	/home/athena/jaw/projects/talmud/mason
+    <Location />
+        SetHandler   perl-script
+        PerlHandler  Talmud
+    </Location>
+    <Location ~ "\.(gif|jpe?g|png|ico|wav|mp3|css)$">
+    	SetHandler none
+    </Location>
+</VirtualHost>
+

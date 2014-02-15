@@ -1,0 +1,63 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-26 13:52 (EST)
+%# Function: view a forum thread
+%#
+%# $Id: view-thread,v 1.10 2010/01/16 03:22:00 jaw Exp $
+
+<DIV CLASS=CONTEXT><A HREF="/">Home</A> &rarr; <A HREF="list-forums">Forums</A> &rarr;
+<A HREF="view-forum?oid=<% $fid %>"><% $forum %></A> &rarr; <% $title %> </DIV>
+<P>
+<A HREF="add-question?oid=<% $fid %>">Post New Question</A><BR>
+<A HREF="add-followup?oid=<% $oid %>">Post New Followup</A><BR>
+
+<TABLE WIDTH="100%">
+% while( my $r = $st->fetchrow_hashref() ){
+<& /generic/comments.mas:header, wide => 1, user => $r->{created_user},
+	date => $r->{crdate},  title => $r->{summary} &>
+<TR CLASS="COMMENT-BODY"><TD>
+  <& /generic/rendercontent.mas, oid => $r->{content_id}, content => $r->{content},
+	mime => $r->{mime_type}, charset => $r->{charset} &><P>
+</TD></TR>
+%}
+</TABLE>
+
+%################################################################
+<%attr>
+    title   => 'View Forum'
+    acl	    => 'user'
+</%attr>
+%################################################################
+<%args>
+    $oid
+</%args>
+%################################################################
+<%init>
+    my $db = Talmud::db();
+
+    my( $fid, $forum, $title ) = $db->select_1array($m->scomp('SELF:SUMMY'), $oid );
+    my $st = $db->do($m->scomp('SELF:POSTS'), $oid, $oid);
+
+</%init>
+%################################################################
+<%method SUMMY>
+select group_id, name, summary
+  from mi_content
+    inner join mi_content_version using (content_id)
+    inner join mi_g_object on (content_id = g_obj_id)
+    inner join mi_forum_group on (refers_to = group_id)
+  where content_id = ?
+    and current_version_p
+</%method>
+%################################################################
+<%method POSTS>
+select *,
+    to_char(created_date, 'HH24:MI DD Mon YYYY') as crdate
+  from mi_content
+    inner join mi_g_object on (content_id = g_obj_id)
+    inner join mi_content_version using (content_id)
+  where content_id = ? or refers_to = ?
+    and current_version_p
+  order by created_date
+</%method>

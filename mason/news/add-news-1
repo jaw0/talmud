@@ -1,0 +1,59 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-May-07 15:45 (EDT)
+%# Function: process add news form and redirect
+%#
+%# $Id: add-news-1,v 1.9 2010/01/16 03:22:11 jaw Exp $
+
+<%attr>
+    title   => 'Add News'
+    acl	    => 'staff'
+</%attr>
+%################################################################
+<%args>
+    $format
+    $content
+    $summary
+</%args>
+%################################################################
+<%init>
+
+    my $s   = Talmud::sess();
+    my $db  = Talmud::db();
+    my $cid = Talmud::g_obj_next_id($db);
+
+    $format = 'plain' if $format eq 'text';
+    eval{	
+	$db->start();
+
+	Talmud::create_object( $db, 'news/content', $cid );
+
+        $db->insert_hash('mi_content', {
+	    content_id	 => $cid,
+	    content_type => 'news',
+	    mime_type	 => "text/$format",
+	    sortkey      => 0,
+	} );
+
+	$db->insert_hash('mi_content_version', {
+	    content_id	=> $cid,
+	    version_id  => Talmud::create_object($db, 'generic/version'),
+	    content	=> $content || undef,
+	    summary	=> $summary || undef,
+	} );
+
+       $db->commit();
+
+    };
+    if( $@ ){
+	my $emsg = $@;
+	$emsg = $db->error_sanitize( $emsg );
+	$db->rollback();
+	$m->comp('/sys/error.mas', msg => $emsg);
+	return $m->comp( 'add-news', dfl => \%ARGS );
+    }
+    
+    $m->comp('/sys/redirect.mas', where => "/generic/view-content?oid=$cid" );
+
+</%init>

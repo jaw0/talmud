@@ -1,0 +1,9 @@
+
+use:
+	John-Boy is looking at a ticket and wants to come back later
+	he clicks on 'bookmark this page'. a window pops up that lets
+	him change the description (he didn't like the default,
+	"Ticket #1734")
+
+	a link appears on his "MY" page, under 'Links'
+

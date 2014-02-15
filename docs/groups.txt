@@ -1,0 +1,12 @@
+
+thoughts
+================
+
+need to be able to specify permissions on groups
+- let a user add himself to a public group
+- let a user remove themself from any group
+- a way to let people add others to a group
+
+
+put 'manage groups' link on view-self and view-user
+

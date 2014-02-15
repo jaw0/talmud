@@ -1,0 +1,48 @@
+%# -*- mason -*-
+%# Copyright (c) 2010 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Created: 2010-Aug-21 09:39 (EDT)
+%# Function: 
+%#
+%# $Id: bkmk-add,v 1.1 2010/08/21 16:06:53 jaw Exp $
+
+<%args>
+    $oid
+</%args>
+%################################################################
+<%attr>
+    title   => 'Add Bookmark'
+    acl	    => 'user'
+</%attr>
+%################################################################
+<%init>
+
+    my $s   = Talmud::sess();
+    my $db  = Talmud::db();
+    my $bid = Talmud::g_obj_next_id($db);
+
+    eval {
+        $db->start();
+
+        # already bookmarked?
+        my $bkmked = $db->select_scalar('select 1 from mi_g_obj_rel where rel_type_name = ? and obj_a = ? and obj_b = ?',
+            'bkmk/attach', $s->{auth}{uid}, $oid);
+
+        unless( $bkmked ){
+            $db->select_scalar(
+		"select mi_g_obj_rel__new( ?, ?, 'rwc; r', 'bkmk/attach', ?, ? )",
+		$bid, $s->{auth}{uid}, $s->{auth}{uid}, $oid );
+        }
+
+        $db->commit();
+    };
+    if( my $emsg = $@ ){
+	$emsg = $db->error_sanitize( $emsg );
+	$db->rollback();
+	$m->comp('/sys/error.mas', msg => $emsg);
+        return;
+    }
+
+    $m->comp('/sys/redirect.mas', where => "/generic/view?oid=$oid" );
+
+</%init>

@@ -1,0 +1,39 @@
+%# -*- mason -*-
+%# Copyright (c) 2010 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Created: 2010-Aug-21 11:24 (EDT)
+%# Function: 
+%#
+%# $Id: bkmk-list-new.mas,v 1.2 2010/08/21 20:18:30 jaw Exp $
+
+% while( my $r = $st->fetchrow_hashref ){
+    <A HREF="<% $r->{url} %>" ><% $r->{name} %></A><BR>
+% }
+%################################################################
+<%args>
+    $n
+</%args>
+%################################################################
+<%init>
+    my $db  = Talmud::db();
+    my $s   = Talmud::sess();
+    my $uid = $s->{auth}{uid};
+
+    my $st = $db->do($m->scomp('SELF:TASKS', n => $n), $uid);
+
+</%init>
+%################################################################
+<%method TASKS>
+<%args>
+    $n
+</%args>
+%# ordered by watched object modified, then bookmark created
+select mi_object_name( mi_object_best(obj_b), true )  AS name,
+    mi_object_fullurl( mi_object_best(obj_b) )        AS url
+  from mi_g_obj_rel
+    inner join mi_g_object B on(obj_b = B.g_obj_id)
+    inner join mi_g_object R on(g_obj_rel_id = R.g_obj_id)
+  where rel_type_name = 'bkmk/attach' and obj_a = ?
+  order by coalesce(B.modified_date, R.created_date) desc
+  limit <% $n + 0 %>
+</%method>

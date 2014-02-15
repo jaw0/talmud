@@ -1,0 +1,33 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-26 12:52 (EST)
+%# Function: create a new forum
+%#
+%# $Id: add-forum,v 1.5 2010/01/15 18:12:55 jaw Exp $
+
+<FORM METHOD=POST ACTION="add-forum-1">
+<TABLE>
+  <&/sys/form, dfl => $dfl, err => $err, form => $m->comp('SELF:FORM') &>
+</TABLE>
+</FORM>
+%################################################################
+<%attr>
+    title => 'Add New Forum'
+    acl   => 'forumadmin'
+</%attr>
+%################################################################
+<%args>
+    $dfl => undef
+    $err => undef
+</%args>
+%################################################################
+<%method FORM>
+<%perl>
+    return [
+{ name => 'name',   label => 'Forum Name',  type => 'text', size => 32, maxlen => 64,  },
+{ name => 'descr',  label => 'Description', type => 'text', size => 32, maxlen => 128, },
+{ type => 'submit',   submit => 'Submit' },
+    ];
+</%perl>
+</%method>

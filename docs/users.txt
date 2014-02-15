@@ -1,0 +1,112 @@
+
+overview
+================
+
+users are people that use the system. this package handles
+the data and functions for users. logging in, preferences,
+home pages, etc.
+
+persons are people who are not direct users of the system,
+but who are in some way represented by the system.
+such as contacts and people who send us email.
+
+groups are groups of persons and other groups
+
+parties are either groups or persons
+
+
+use
+================
+
+Jane Doe logs in using her nickname (aka screen name, user name, etc)
+"jdoe". she enters a password. she is then logged in. the system
+knows who she is and can apply access control based on her identity
+and can attribute contributions to her.
+
+She will want to provide information about herself to other users,
+such as show a portrait, and tell people about her interest in
+worm cultivation.
+
+================================================================
+groups
+
+a group should be able to be a member of another group
+
+any user should be able to create a group
+
+any user should be able to add another to a group they belong to (acl: group = c)
+
+================================================================
+
+data model is based on ACS parties, people, ...
+    party (email, url)
+    person :party  (name, category, public_p)
+    user   :person (passwd, nickname, ...)
+    group  :party  (groupname)
+
+================================================================
+
+an admin need to
+	add new users
+	lock users
+
+	manage groups a user belongs to
+	change user passwd
+
+
+a user needs to be able to
+	change their own passwd
+	update their home page, email, photo
+	same place should have update links, etc:
+		bookmarks
+		watches
+
+other users should be able to view
+	photo, email, home page
+	recent activity: comments, articles, tkts
+
+================================================================
+admin access, viewing other users:
+	/users/*
+	/users/view-user	other users view
+
+	/users/add-user
+	/users/edit-user	various admin functions
+	/users/edit-passwd
+	/users/edit-groups
+
+end-user's own account
+	/my/*
+
+	/my/view-prefs
+	/my/edit-prefs
+	/my/edit-passwd
+
+
+================================================================
+
+view-user
+
+     NAME                 PHOTO
+     email
+     url
+    
+     other data
+    
+     -----------
+    
+     list of content
+    
+     -----------
+    
+     comments on user
+    
+
+================================================================
+edit-groups
+
+    [] group
+    [] group
+    submit
+
+

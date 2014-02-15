@@ -1,0 +1,51 @@
+
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-09 09:36 (EDT)
+%# Function: edit a facility
+%#
+%# $Id: edit-meta,v 1.6 2010/01/16 03:22:07 jaw Exp $
+
+<DIV CLASS=CONTEXT>IPDB &rarr; Allocation Meta Data &rarr; Edit &rarr; <% $name %></DIV>
+<P>
+
+<FORM METHOD=POST ACTION="edit-meta-1">
+<INPUT TYPE=HIDDEN NAME=oid VALUE="<% $oid %>">
+<TABLE>
+  <&/sys/form, dfl => $dfl, err => $err, form => $form &>
+</TABLE>
+</FORM>
+%################################################################
+<%attr>
+    title   => 'Edit Meta'
+    acl	    => 'ipdbadmin :w'
+</%attr>
+%################################################################
+<%args>
+    $oid
+    $dfl    => undef
+    $err    => undef
+</%args>
+%################################################################
+<%init>
+    my $db = Talmud::db();
+
+    my $d = $db->select_1hashref("select * from mi_ipdb_meta where meta_id = ?", $oid);
+    my($form);
+
+    # re-use add-registry form
+    $form = $m->comp( 'add-new-block:FORM', db => $db );
+    # remove block + size from form
+    shift @$form;
+    shift @$form;
+
+    $dfl = $m->comp('/sys/form:dfl_from_sql',
+	form => $form,
+	data => $d,
+	sqlcol => 'sql'
+    );
+
+    my $name = "$d->{netblock}/$d->{size}";
+
+</%init>

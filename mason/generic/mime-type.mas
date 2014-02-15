@@ -1,0 +1,39 @@
+%# -*- mason -*-
+%# Copyright (c) 2010 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Created: 2010-Jan-17 16:33 (EST)
+%# Function:
+%#
+%# $Id: mime-type.mas,v 1.1 2010/08/17 14:48:02 jaw Exp $
+
+<%args>
+    $filename
+</%args>
+<%once>
+    my %MIME = (
+        pdf     => 'application/pdf',
+	swf     => 'application/x-shockwave-flash',
+	zip     => 'application/zip',
+	mpg     => 'audio/mpeg',
+	mp2     => 'audio/mpeg',
+	mp3     => 'audio/mpeg',
+	aif     => 'audio/x-aiff',
+	aiff    => 'audio/x-aiff',
+	ram     => 'audio/x-pn-realaudio',
+	rpm     => 'audio/x-pn-realaudio-plugin',
+	ra      => 'audio/x-realaudio',
+	wav     => 'audio/x-wav',
+	gif     => 'image/gif',
+	jpeg    => 'image/jpeg',
+	jpg     => 'image/jpeg',
+	png     => 'image/png',
+	tif     => 'image/tiff',
+	tiff    => 'image/tiff',
+	html    => 'text/html',
+	txt     => 'text/plain',
+    );
+</%once>
+<%init>
+    my($ext) = $filename =~ /\.([^\.]+)$/;
+    return $MIME{lc($ext)};
+</%init>

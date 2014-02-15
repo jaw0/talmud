@@ -1,0 +1,120 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-09 09:22 (EDT)
+%# Function: process add eqmt form and generate next form
+%#
+%# $Id: add-eqmt-1,v 1.12 2010/08/20 04:20:53 jaw Exp $
+
+%# this is split into 2 forms so we can do per facility eqmt menus
+
+<H3>Add Equipment</H3>
+<P>
+<FORM METHOD=POST ACTION="add-eqmt-2">
+<TABLE>
+<% $form |n%>
+</TABLE>
+<% $preserve |n%>
+</FORM>
+
+%################################################################
+<%attr>
+	title	=> 'Add Eqmt'
+	acl	=> 'staff'
+</%attr>
+%################################################################
+<%args>
+	$fac
+	$dfl => undef
+	$err => undef
+</%args>
+%################################################################
+<%init>
+	my $s  = Talmud::sess();
+
+	# validate previous form
+	my $f0 = $m->comp('add-eqmt:form');
+
+	# we could be here from add-eqmt (values in %ARGS) or add-eqmt-2 (values in $dfl)
+	$dfl ||= \%ARGS;
+
+	$m->comp('/sys/form:fixup', form => $f0, args => $dfl );
+	my $ferr = $m->comp('/sys/form:validate', form => $f0, args => $dfl );
+
+	if( $ferr ){
+		return $m->comp( 'add-eqmt', err => $ferr, dfl => $dfl );
+    	}
+
+	# and preserver the values
+	my $preserve = $m->scomp( '/sys/form:preserve',
+		form => $f0,
+		dfl  => $dfl,
+	);
+
+	# generate next form
+	my $form = $m->scomp( '/sys/form',
+		form => $m->comp( 'SELF:form', fac => $fac ),
+		dfl  => $dfl, 
+		err  => $err,
+	);
+
+
+</%init>
+%################################################################
+<%method form>
+<%args>
+	$fac	=> undef
+	$view	=> undef
+	$post	=> undef
+</%args>
+<%perl>
+	my $db = Talmud::db();
+	my $fq;
+
+	$view ||= $post;
+
+	if( $fac ){
+		$fq = " and fac_id = ". $db->quote($fac);
+	}
+
+	return [
+
+# location specific
+
+{ name => 'rack', label => 'Rack Number',   type => 'text', size => 32, maxlen => 32, sqlname => 'rack_no',
+	opt => 1, hint => 'the big number written near the top of the rack'  },
+{ name => 'rpos', label => 'Rack Position', type => 'menu', values => [ '', 0 .. 48 ], sqlname => 'rack_pos',
+	opt => 1, hint => 'number of rack units from bottom' },
+
+{ name => 'cons', label => 'Console Device', type => 'hash', sqlname => 'console_dev', values =>
+  $view ? {} : { $db->select_2columns("select eqmt_id, fqdn from mi_eqmt inner join mi_hw_type using (hw_type_id) ".
+	    "where hw_type_id = 'ts' $fq"), '' => '' }, default => '', opt => 1,
+	hint => 'what console server does the console attach to' },
+
+{ name => 'conp', label => 'Console Port', type => 'text', size => 32, maxlen => 32,  sqlname => 'console_port',
+	opt => 1, hint => 'which port on the selected console device' },
+
+{ name => 'pows', label => 'Power Device', type => 'hash', sqlname => 'power_dev', values =>
+  $view ? {} : { $db->select_2columns("select eqmt_id, fqdn from mi_eqmt inner join mi_hw_type using (hw_type_id) ".
+	    "where hw_type_id = 'pwr' $fq"), '' => '' }, default => '',  opt => 1,
+	hint => 'what power strip does the device plug in to' },
+
+{ name => 'powp', label => 'Power Port', type => 'text', size => 32, maxlen => 32,  sqlname => 'power_port',
+	opt => 1, hint => 'which outlet on the selected power device' },
+
+#{ name => 'swis', label => 'Switch Device', type => 'hash', sqlname => 'switch_dev', values =>
+#  $view ? {} : { $db->select_2columns( "select eqmt_id, fqdn from mi_eqmt inner join mi_hw_type using (hw_type_id) ".
+#	    "where hw_type_id = 'sw' $fq"), '' => '' }, default => '',  opt => 1,
+#	hint => 'what ethernet switch is this device plugged in to' },
+#
+#{ name => 'swip', label => 'Switch Port', type => 'text', size => 32, maxlen => 32,  sqlname => 'switch_port',
+#	opt => 1, hint => 'which port on the selected switch' },
+#
+#{ name => 'vlan', label => 'VLAN ID',     type => 'text',  size => 32, maxlen => 32,  sqlname => 'vlan', opt => 1 },
+
+{ type => 'submit',   submit => 'Submit' },
+
+	];
+</%perl>
+</%method>
+

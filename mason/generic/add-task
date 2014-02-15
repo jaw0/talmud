@@ -1,0 +1,40 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Created: 2003-Nov-10 16:48 (EST)
+%# Function: 
+%#
+%# $Id: add-task,v 1.4 2010/01/15 18:12:58 jaw Exp $
+
+<FORM METHOD=POST ACTION="add-task-1">
+<INPUT TYPE=HIDDEN NAME=oid VALUE="<% $oid %>">
+<TABLE>
+  <& /sys/form, dfl => $dfl, err => $err, form => $m->comp( 'SELF:FORM' ) &>
+</TABLE>
+</FORM>
+%################################################################
+<%attr>
+    title => 'Add Task'
+    acl   => 'user :c'
+</%attr>
+%################################################################
+<%args>
+    $oid => undef
+    $dfl => undef
+    $err => undef
+    $fnc => undef
+</%args>
+%################################################################
+<%method FORM>
+<%perl>
+    return [
+{ name => 'summary',   label => 'Summary',  type => 'text', size => 64, maxlen => 200 }, 
+{ name => 'deadline',  label => 'Deadline', type => 'date',
+    hint => 'When does this need to be completed by', optx => 1 },
+{ name => 'pubp',      label => 'Public',   type => 'menu', values => ['public', 'private'] },
+{ name => 'sortkey',   label => 'Priority', type => 'text', size => 64, maxlen => 128, optx => 1 }, 
+
+{ type => 'submit',   submit => 'Submit' },
+    ];
+</%perl>
+</%method>

@@ -1,0 +1,33 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-09 11:07 (EDT)
+%# Function: process edit groups form and redirect
+%#
+%# $Id: edit-groups-1,v 1.8 2010/08/21 23:11:48 jaw Exp $
+
+<%attr>
+    title   => 'Edit User Groups'
+    acl	    => 'acctadmin secadmin :-'
+</%attr>
+%################################################################
+<%args>
+    $oid
+</%args>
+%################################################################
+<%init>
+
+    my @g;
+    for my $k (keys %ARGS){
+	push @g, $ARGS{$k} if $k =~/^grp_/;
+    }
+print STDERR "groups @g\n";
+    my $gid = $m->comp('/sys/domethod',
+	method	=> 'users/groups-edit',
+	args	=> { oid => $oid, gid => \@g },
+	error	=> ['/users/edit-groups', oid => $oid],
+    );
+
+    $m->comp('/sys/redirect.mas', where => "/users/view-user?oid=$oid");
+
+</%init>

@@ -1,0 +1,117 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-May-05 16:12 (EDT)
+%# Function: check access control lists - error if not permitted
+%#
+%# $Id: chkacl.mas,v 1.10 2010/08/22 03:54:22 jaw Exp $
+%#
+<%args>
+    $db
+    $acl
+    $oid    => undef
+    $oacl   => undef
+    $owner  => undef
+</%args>
+%################################################################
+<%perl>
+
+check_comp_acl( $db, $acl )
+        || return 'Permission Denied - Cannot Access Page';
+check_object_acl( $db, $acl, $oid, $owner, $oacl )
+        || return 'Permission Denied - Cannot Access Object';
+
+return undef;
+</%perl>
+%################################################################
+<%once>
+    my $DEFAULT_ACL = 'rwc; rwc';	# owner; public
+
+# check access permission on component
+# returns: true if ok, false if not ok
+sub check_comp_acl {
+    my $db  = shift;
+    my $acl = shift;
+
+    my $s = Talmud::sess();
+    my @g = split /\s+/, lc($acl);
+    @g = grep { !/^:/ } @g;		# remove access mode spec
+
+    return 1 unless @g;			# no ACL => full access
+    return undef unless $s->{auth};	# not logged in => no access
+
+    # must belong to at least one listed group
+    foreach my $g (@g){
+	return 1 if $s->{auth}{groups}{$g};
+    }
+
+    return undef;
+}
+
+# returns: true if ok, false if not ok
+sub check_object_acl {
+    my $db  = shift;
+    my $acl = shift;
+    my $oid = shift;
+    my $owner = shift;
+    my $oacl  = shift;
+
+    my $s = Talmud::sess();
+    my $uid = $s->{auth}{uid};
+    my( $mode, $found );
+
+    # find access mode in acl
+    # does acl specify a mode?
+    if( $acl =~ /:(.)/ ){
+        $mode = lc($1);
+    }else{
+	# default is read
+        $mode = 'r';
+    }
+
+    return 1 if $mode eq '-';	# ignore object ACL
+
+    unless( $owner ){
+	return 1 unless $oid;
+	($owner, $oacl, $found) = $db->select_1array(
+		"select coalesce(g_obj_owner, created_user), acl, 1 from mi_g_object where g_obj_id = ?",
+			$oid );
+	return 1 unless $found;
+    }
+
+
+    $oacl ||= $DEFAULT_ACL;
+    # print STDERR "acl: $uid, $owner, $oacl\n";
+
+    my @l = split /\s*;\s*/, $oacl;
+
+    # 1st is for owner
+    if( $owner eq $uid ){
+	my $priv = shift @l;
+	# print STDERR "acl owner: $priv - $mode\n";
+	return ($priv =~ /$mode/i) ? 1 : 0;
+    }
+    shift @l;
+
+    # otherwise check grouplists
+    foreach my $perm (@l){
+        # "group group [...] = perm"
+	$perm = "* = $perm" unless $perm =~ /=/;
+	my( $gl, $priv ) = split /=/, $perm;
+
+	# check each group
+	my @gl = split /\s+/, $gl;
+	push @gl, '*' unless @gl;	# empty grouplist = public
+	foreach my $group (@gl){
+
+	    if( $group eq '*' || $s->{auth}{groups}{$group} ){
+		# print STDERR "acl group: $group - $priv - $mode\n";
+		return ($priv =~ /$mode/i) ? 1 : 0;
+	    }
+	}
+    }
+
+    return undef;
+
+}
+</%once>

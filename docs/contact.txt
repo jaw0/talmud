@@ -1,0 +1,27 @@
+
+overview
+================
+
+keep tract of contact information for a person/company/...
+such as phone numbers, addresses, etc
+
+
+functions
+================
+add a new contact
+add data to a contact
+delete data from contact
+
+edit contact name
+edit contact data
+
+
+
+view
+========
+
+NAME
+  home phone    555-1212
+  cell phone    555-1234
+
+

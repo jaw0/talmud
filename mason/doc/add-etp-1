@@ -1,0 +1,62 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-May-07 15:45 (EDT)
+%# Function: add document and redirect to view
+%#
+%# $Id: add-etp-1,v 1.11 2010/01/16 03:21:55 jaw Exp $
+%#
+
+<%attr>
+    title   => 'Add Document'
+    acl	    => 'staff :c'
+</%attr>
+%################################################################
+<%args>
+    $oid
+    $sortkey
+    $format
+    $content
+    $summary
+</%args>
+%################################################################
+<%init>
+    my $s  = Talmud::sess();
+    my $db = Talmud::db();
+
+    $format = 'plain' if $format eq 'text';
+
+    my $cid = Talmud::g_obj_next_id($db);
+
+    eval{
+	$db->start();
+	Talmud::create_object( $db, 'etp/content', $cid, undef, ($oid||undef) );
+
+        $db->insert_hash( 'mi_content', {
+	    content_id	 => $cid,
+	    content_type => 'etp',
+	    mime_type	 => "text/$format",
+	    sortkey      => $sortkey,
+	} );
+
+	$db->insert_hash( 'mi_content_version', {
+	    content_id	=> $cid,
+	    version_id  => Talmud::create_object($db, 'generic/version'),
+	    content	=> $content,
+	    summary	=> $summary,
+	} );
+
+	$db->commit();
+    };
+    if( $@ ){
+	 my $emsg = $@;
+	 $emsg = $db->error_sanitize( $emsg );
+	 $db->rollback();
+	 $m->comp('/sys/error.mas', msg => $emsg);
+	 return $m->comp( 'add-etp', oid => $oid, dfl => \%ARGS );
+    }
+    
+    # view parent doc
+    $m->comp('/sys/redirect.mas', where => "/doc/view?oid=$oid" );
+
+</%init>

@@ -1,0 +1,261 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-09 11:50 (EDT)
+%# Function: list tickects
+%#
+%# $Id: list-tkts,v 1.21 2010/10/05 04:08:50 jaw Exp $
+
+<script src="/sys/sortable.js"></script>
+%################################################################
+%# top: selection form
+<TABLE WIDTH=100% CLASS="TKT-LIST-FORM">
+<TR><TD ALIGN=LEFT VALIGN=TOP>
+<FORM><TABLE>
+  <& /sys/form, form => $m->comp('SELF:FORM', db => $db) &>
+</TABLE></FORM></TD>
+</TABLE>
+
+<TABLE CELLPADDING=4 CELLSPACING=0 CLASS="TKTLIST sortable" ID=tickettable>
+<thead>
+<tr CLASS="TKTLIST-HDR">
+  <td>Tkt no.</td><td sortable="no">Me</td><td>Section</td><td sortas="int">Priority</td><td>Status</td>
+  <td>Subject</td><td sortas=int>Severity</td><td sortas="int">Updated</td><td>Owner</td>
+  <td sortas="int">Created</td><td>Creator</td>
+  <td sortable="no">Actions</td>
+</tr>
+</thead>
+<tbody>
+
+% while( my $r = $st->fetchrow_hashref ){
+    <& SELF:summary, r => $r, url => $url, class => ($n++ % 2) ? 'oddrow' : 'evenrow' &>
+% }
+
+</tbody>
+</TABLE>
+&nbsp;<P>
+%# bottom
+
+<script>
+    window.onload = function(){
+        init_table('tickettable', 0);
+    };
+</script>
+
+%################################################################
+<%attr>
+    title   => 'List Tickets'
+    acl	    => 'staff'
+</%attr>
+%################################################################
+<%args>
+    $page	=> undef
+    $group	=> undef
+    $owner	=> undef
+    $status	=> undef
+    $sortby	=> undef
+    $search	=> undef
+</%args>
+%################################################################
+<%init>
+
+    my $db = Talmud::db();
+    my $s  = Talmud::sess();
+
+    my( $sb, $wh, @wh, @qs );
+
+    if( $group ){
+	$wh .= ' and mi_tkt_section.name = ?';
+	push @wh, $group;
+	push @qs, "group=$group";
+    }else{
+	# does user have a preference?
+	my $g = $db->select_scalar("select section_id from mi_user where user_id = ?",
+		$s->{auth}{uid} );
+	if( $g ){
+	    $wh .= ' and mi_tkt_section.section_id = ?';
+	    push @wh, $g;
+	}
+    }
+
+    if( $owner ){
+	if( $owner eq 'unowned' ){
+	    $wh .= ' and owner is null';
+	}else{
+	    my $o = $db->select_scalar("select user_id from mi_site_user where nickname = ? or realname = ?",
+		    $owner, $owner );
+	    $wh .= ' and owner = ?';
+	    push @wh, $o;
+	}
+	push @qs, "owner=$owner";
+    }
+
+    push @qs, "status=$status" if $status;
+
+    if( $status eq 'deleted' ){
+	$wh .= ' and mi_tkt_status.name = ?';
+	push @wh, 'dead';
+    }
+    elsif( $status eq 'closed' ){
+	$wh .= ' and mi_tkt_status.name = ?';
+	push @wh, 'closed';
+    }
+    elsif( $status eq 'all' ){
+	# all = open or closed
+	$wh .= ' and mi_tkt_status.name != ?';
+	push @wh, 'deleted';
+    }
+    else{
+	# default: open
+	$wh .= ' and mi_tkt_status.active_p';
+    }
+
+
+    # build order by clause
+    if( $sortby ){
+	$sb = {
+	    'priority - up'		=> 'priority_id  ASC',
+	    'priority - dn'		=> 'priority_id  DESC',
+	    'severity - up'		=> 'severity_id  ASC',
+	    'severity - dn'		=> 'severity_id  DESC',
+	    'create - up'		=> 'mi_g_object.created_date ASC',
+	    'create - dn'		=> 'mi_g_object.created_date DESC',
+	    'update - up'		=> 'updated  ASC',
+	    'update - dn'		=> 'updated  DESC',
+	    'deadline - up'		=> 'deadline ASC',
+	    'deadline - dn'		=> 'deadline DESC',
+	    }->{$sortby};
+
+	if( $sb ){
+	    $sb = "ORDER BY $sb ";
+	}
+    }else{
+	$sb = 'ORDER BY tkt_number';
+    }
+
+
+    # create url for adjust links
+    my $url = join( ';', @qs );
+    $url = $url ? "/tkt/list-tkts?$url" : "/tkt/list-tkts";
+
+    my $st = $db->do( $m->scomp('SELF:DATA', wh => $wh, sb => $sb), @wh);
+    my $n;
+
+
+</%init>
+%################################################################
+<%method DATA>
+<%args>
+    $wh
+    $sb
+</%args>
+select tkt_id, tkt_number, summary AS subject, 
+    creator, mi_tkt_status.name AS status,
+    mi_tkt_section.name  AS group,
+    mi_tkt_priority.name AS prio,	mi_tkt_priority.sort_value AS prio_sort,
+    mi_tkt_priority.color AS color,
+    mi_tkt_severity.name AS seve,	mi_tkt_severity.sort_value AS seve_sort,
+    coalesce(nickname, realname, '--') AS owner_name, owner,
+    extract(epoch from now() - created_date) AS age,
+    extract(epoch from now() - updated) AS update,
+    extract(epoch from deadline - now()) AS deadline
+  from mi_ticket
+    INNER JOIN mi_task ON (mi_ticket.tkt_id = mi_task.task_id)
+    INNER JOIN mi_g_object ON (mi_ticket.tkt_id = mi_g_object.g_obj_id)
+    INNER JOIN mi_tkt_status USING (status_id)
+    INNER JOIN mi_tkt_section ON (refers_to = section_id)
+    INNER JOIN mi_tkt_priority USING (priority_id)
+    INNER JOIN mi_tkt_severity USING (severity_id)
+    LEFT OUTER JOIN mi_site_user ON (mi_task.owner = mi_site_user.user_id)
+  where merged_into is null <% $wh |n%>
+  <% $sb |n%>
+</%method>
+%################################################################
+<%method FORM>
+<%args>
+    $db	=> undef
+</%args>
+<%perl>
+    my(@staff, @sect);
+    if( $db ){
+	@staff = $db->select_column("select coalesce(nickname, realname) from mi_site_user");
+	@sect  = $db->select_column("select name from mi_tkt_section order by name");
+    }
+
+    # simple selection form
+    return [
+{ type => 'table', how => '[', border => 0 },
+{ name => 'status', label => 'Status',   type => 'menu', values => ['open', 'all', 'closed', 'deleted'], },
+{ type => 'table', how => '][' },
+{ name => 'group',  label => 'Section',  type => 'menu', values => ['', @sect],   },
+{ type => 'table', how => '][' },
+{ name => 'owner',  label => 'Owner',    type => 'menu', values => ['', 'unowned', @staff],   },
+# { name => 'sortby', label => 'Sort By',  type => 'menu', values => ['',
+#	'priority - up', 'priority - dn', 'severity - up', 'severity - dn',
+#	'create - up', 'create - dn', 'update - up', 'update - dn', 'deadline - up', 'deadline - dn', ], },
+{ type => 'table', how => '][' },
+{ type => 'submit',   submit => 'List' },
+# { type => 'table', how => '][' },
+
+# { type => 'ro', value => '[<A HREF="add-tkt">New Tkt</A>]' },
+
+{ type => 'table', how => ']' },
+
+    ];
+</%perl>
+</%method>
+%################################################################
+<%method summary>
+<%args>
+    $r
+    $class
+    $url
+</%args>
+<TR CLASS="<% $class %>">
+  <TD class=tktlistnumber><A HREF="view-tkt?oid=<% $r->{tkt_id} %>"
+        TITLE="show me the details"># <% $r->{tkt_number} %></A></TD>
+% if( $mine ){
+    <td><&/sys/sym:mine&></td>
+% }else{
+    <td></td>
+% }
+  <TD><% $r->{group} %></TD>
+  <TD BGCOLOR="#<% $r->{color} %>" sortby="<% $r->{prio_sort} %>"><% $r->{prio} %></TD>
+  <TD><% $r->{status} %></TD>
+  <TD class="tktlistsubject"><A HREF="view-tkt?oid=<% $r->{tkt_id} %>"
+        TITLE="show me the details"><% $r->{subject} %></A></TD>
+  <TD sortby="<% $r->{seve_sort} %>"><% $r->{seve} %></TD>
+  <TD sortby="<% int $r->{update} %>"> <% Talmud::pretty_age( $r->{update} ) %> ago</TD>
+  <TD><% $r->{owner_name} %></TD>
+  <TD sortby="<% int $r->{age} %>"><% Talmud::pretty_age($r->{age}) %> ago</TD>
+  <TD><% $m->comp( '/sys/widgets:userlink', link => 0, oid => $r->{creator} ) %></TD>
+  <TD sortby="0">
+    <A HREF="adjust-tkt?oid=<% $r->{tkt_id} %>;o=mine;url=<% $url |u %>"
+	TITLE="Yes, I'll take care of it">[Take]</A>
+    <A HREF="adjust-tkt?oid=<% $r->{tkt_id} %>;s=dead;url=<% $url |u %>"
+	TITLE="This ticket is spam--go away">[Kill]</A>
+  </TD>
+%#  <TD <% $deadcolor |n%>><% $dead %></TD>
+</TR>
+<%init>
+    my $dead = '--';
+    my $deadcolor;
+
+    if( $r->{deadline} ){
+	if( $r->{deadline} >= 0 ){
+	    $dead = 'in '. Talmud::pretty_age( $r->{deadline} );
+	}else{
+	    $deadcolor = "BGCOLOR=\"#FF6666\"";
+	    $dead = Talmud::pretty_age( - $r->{deadline} ) . ' ago';
+	}
+    }
+
+    my $s   = Talmud::sess();
+    my $db  = Talmud::db();
+
+    # I created it/own it/am watching it
+    my $mine = ($s->{auth}{uid} eq $r->{owner}) || ($s->{auth}{uid} eq $r->{creator});
+    $mine ||= $db->select_scalar('select 1 from mi_g_obj_rel where obj_a = ? and obj_b = ?', $s->{auth}{uid}, $r->{tkt_id});
+
+</%init>
+</%method>

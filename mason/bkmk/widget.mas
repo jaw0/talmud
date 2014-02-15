@@ -1,0 +1,31 @@
+%# -*- mason -*-
+%# Copyright (c) 2010 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Created: 2010-Aug-20 19:45 (EDT)
+%# Function: bookmark widget
+%#
+%# $Id: widget.mas,v 1.2 2010/08/29 14:45:01 jaw Exp $
+% if( $bid ){
+    <<% $tag %> title="bookmarked. remove?" class="bookmark-yes" href="/bkmk/bkmk-rm?oid=<% $bid %>"> <&/sys/sym:bookmark_yes&></<% $tag %>>
+% }else{
+    <<% $tag %> title="bookmark this" class="bookmark-no" href="/bkmk/bkmk-add?oid=<% $oid %>"> <&/sys/sym:bookmark_no&></<% $tag %>>
+% }
+%################################################################
+<%args>
+    $oid
+    $ro     => undef
+</%args>
+%################################################################
+<%init>
+
+    # already bkmked?
+    my $s   = Talmud::sess();
+    my $db  = Talmud::db();
+
+    my $bid = $db->select_scalar('select g_obj_rel_id from mi_g_obj_rel
+            where rel_type_name = ? and obj_a = ? and obj_b = ?',
+            'bkmk/attach', $s->{auth}{uid}, $oid);
+
+    my $tag = $ro ? 'span' : 'a';
+
+</%init>

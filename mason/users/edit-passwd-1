@@ -1,0 +1,45 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-09 11:11 (EDT)
+%# Function: process change passwd form and redirect
+%#
+%# $Id: edit-passwd-1,v 1.7 2010/01/16 03:22:18 jaw Exp $
+
+<%attr>
+	title	=> 'Edit Passwd'
+	acl	=> 'acctadmin :-'
+</%attr>
+%################################################################
+<%args>
+	$oid
+	$pass1
+	$pass2
+</%args>
+%################################################################
+<%init>
+	my $s  = Talmud::sess();
+	my $db = Talmud::db();
+
+	eval {
+		die "passwords do not match\n" unless $pass1 eq $pass2;
+		$db->start();
+		$db->update_hash('t_user', {
+			passwd   => Talmud::Passwd::encrypt($pass1),
+		}, [ user_id => $oid ] );
+
+		Talmud::touch_object( $db, $oid );
+
+		$db->commit();
+	};
+        if( $@ ){
+             my $emsg = $@;
+             $emsg = $db->error_sanitize( $emsg );
+             $db->rollback();
+             $m->comp('/sys/error.mas', msg => $emsg);
+             return $m->comp( 'edit-passwd', oid => $oid, dfl => \%ARGS );
+        }
+
+	$m->comp('/sys/redirect.mas', where => "/users/view-user?oid=$oid");
+
+</%init>

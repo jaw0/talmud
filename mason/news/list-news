@@ -1,0 +1,44 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-09 10:41 (EDT)
+%# Function: show a list of articles
+%#
+%# $Id: list-news,v 1.6 2010/01/16 03:22:11 jaw Exp $
+
+<H2>Articles</H2>
+<TABLE>
+% while( my $r = $st->fetchrow_hashref ){
+    <& SELF:SUMMARY, r => $r &>
+% }
+</%perl>
+</TABLE>
+%################################################################
+<%attr>
+    title   => 'Articles'
+    acl	    => undef
+</%attr>
+%################################################################
+<%init>
+    my $db = Talmud::db();
+    my $st = $db->do($m->scomp('SELF:NEWS'));
+</%init>
+%################################################################
+<%method NEWS>
+SELECT *, to_char(COALESCE(modified_date, created_date), 'HH24:MI DD Mon YYYY') AS date
+  FROM mi_content
+    INNER JOIN mi_g_object ON (mi_content.content_id = mi_g_object.g_obj_id)
+    INNER JOIN mi_content_version USING (content_id)
+  WHERE status = 'active'
+    AND content_type = 'news'
+    AND current_version_p
+  ORDER BY COALESCE(modified_date, created_date) DESC
+</%method>
+%################################################################
+<%method SUMMARY>
+<%args>
+    $r
+</%args>
+<TR><TD><A HREF="/generic/view-content?oid=<% $r->{content_id} %>"><% $r->{summary} %></A></TD>
+<TD><% $r->{date} %></TD></TR>
+</%method>

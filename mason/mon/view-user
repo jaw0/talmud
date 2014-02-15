@@ -1,0 +1,95 @@
+%# -*- mason -*-
+%# Copyright (c) 2004 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Created: 2004-Jan-08 18:12 (EST)
+%# Function: view argus user
+%#
+%# $Id: view-user,v 1.2 2010/01/16 03:22:09 jaw Exp $
+
+<DIV CLASS=CONTEXT> Monitoring &rarr; <% 'real' %></DIV>
+<P>
+
+<TABLE CLASS="MON-VIEW-USER">
+<TR><TD>
+  <TABLE><TR><TD CLASS=ACCT VALIGN=TOP>
+  <H3>Account Details</H3>
+    <TABLE>
+    <TR><TD><B>Real Name: </B></TD>  <TD><% $r->{realname} %></TD></TR>
+    <TR><TD><B>Email: </B></TD>      <TD><% $r->{email} %></TD></TR>
+    <TR><TD><B>Time Zone: </B></TD>  <TD><% $r->{timezone} %></TD></TR>
+    <TR><TD><B>Notify List: </B></TD><TD><% $r->{notify} %></TD></TR>
+
+
+    <!-- RSN staff data -->
+
+    <TR><TD></TD><TD><A HREF="edit-acct"><B>[ Edit ]</B></A></TD></TR>
+    <TR><TD></TD><TD><A HREF="edit-pass"><B>[ Change Password ]</B></A></TD></TR>
+
+    </TABLE>
+
+  </TD>
+  <TD VALIGN=TOP WIDTH=1 CLASS=VERTLINE><BR></TD>
+  <TD CLASS=ESCLTN VALIGN=TOP>
+
+  <H3>Escalation Schedule</H3>
+    <TABLE>
+
+%   if( $r->{escalate} ){
+%        my @esc = split /\;\s+/, $r->{escalate};
+%        foreach my $e (@esc){
+%            my($m, $w) = split /\s+/, $e, 2;
+%            print "<TR><TD><B>Minutes: </B></TD><TD>$m</TD><TD><B>Notify: </B></TD><TD>$w</TD></TR>\n";
+%        }
+%    }else{
+%        print "<TR><TD COLSPAN=4><I>Use this section to notify<BR>people in addition to those listed<BR>",
+%        "in the <B>Notify List</B> after a certain<BR>amount of time passes</TD></TR>\n";
+%    }
+
+    <TR><TD COLSPAN=2><BR></TD><TD COLSPAN=2><A HREF="edit-esc"><B>[ Edit ]</B></A></TD></TR>
+    </TABLE>
+
+
+    yyy
+
+  </TD></TR>
+  <TR><TD COLSPAN=3 CLASS=SRVCS>
+  <H2>Service Monitors</H2>
+   zzz
+
+  </TD></TR></TABLE>
+
+
+<TD VALIGN=TOP WIDTH=1 CLASS=VERTLINE><BR></TD>
+<TD VALIGN=TOP WIDTH="20%" CLASS="RELATED-COL">
+
+<B>Related Items</B><BR>
+<& /generic/related.mas, oid => $oid &>
+<& /tkt/byuser.mas, oid => $oid, status => 'open' &>
+
+<TD VALIGN=TOP WIDTH=1 CLASS=VERTLINE><BR></TD>
+<TD VALIGN=TOP CLASS="COMMENT-COL">
+
+<B>Comments</B><BR>
+<& /generic/comments.mas, oid => $oid, fnc => '/mon/view-user', wide => 0 &>
+
+</TD></TR>
+</TABLE>
+
+%################################################################
+<%attr>
+	title	=> 'View User'
+	acl	=> 'user'
+</%attr>
+%################################################################
+<%args>
+	$oid	=> undef
+</%args>
+%################################################################
+<%init>
+    my $s  = Talmud::sess();
+    my $db = Talmud::db();
+
+    my $r = $db->select_1hashref('select * from mon_user where user_id = ?', $oid);
+
+
+</%init>

@@ -1,0 +1,47 @@
+
+overview
+================
+
+provide search functions to system
+
+
+use cases
+================
+
+Dominic remembers seeing a document about fraudulent accounting
+practices some months ago, but cannot seem to find it. He
+enters "fraudulent accounting" in the search box. The system
+returns a list of matching documents
+
+features
+================
+
+search through generic content
+
+non-features
+================
+
+stuff other than 'content' will not be indexed
+
+
+implementation notes
+================
+
+cron job will run to do indexing
+
+
+Lingua::Stem::EN
+Lingua::EN::Tagger
+	will take text, find words+phrases, do stemming,
+	return wordlist + counts
+
+================
+
+for non-content objects:
+
+create a table, containing names of tables, columns, oidcolumn to index
+any object can ($x-init.sql) then add itself to be searched
+
+
+would it be easier to just hardcode the indexer code?
+

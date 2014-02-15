@@ -1,0 +1,13 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-08 22:33 (EDT)
+%# Function: display contact sub nav bar
+%#
+%# $Id: autohandler,v 1.2 2003/11/12 23:57:13 jaw Exp $
+
+<DIV CLASS=SUBNAV>
+<A HREF="add-contact">New Contact</A> &nbsp;&nbsp;&nbsp;
+<A HREF="list-contacts">List</A> &nbsp;&nbsp;&nbsp;
+</DIV>
+% $m->call_next();

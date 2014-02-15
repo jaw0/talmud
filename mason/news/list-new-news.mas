@@ -1,0 +1,46 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-09 10:43 (EDT)
+%# Function: list new articles
+%#
+%# $Id: list-new-news.mas,v 1.10 2010/01/16 03:22:11 jaw Exp $
+
+<TABLE CLASS="LIST-CONTENT">
+% while( my $r = $st->fetchrow_hashref ){
+    <& /generic/comments.mas:header, contid => $r->{content_id},
+	user => $r->{created_user}, date => $r->{date},
+	title => $r->{summary}, style => '', wide => 1 &>
+    <TR CLASS="NEWS-BODY"><TD>
+	<& /generic/rendercontent.mas, content => $r->{content}, mime => $r->{mime_type},
+		charset => $r->{charset}, oid => $r->{content_id} &>
+	<HR></TD></TR>
+% }
+</TABLE>
+<A HREF="/news/" TITLE="Show me more news">More...</A>
+%################################################################
+<%args>
+    $n
+</%args>
+%################################################################
+<%init>
+    my $db = Talmud::db();
+
+    my $st = $db->do($m->scomp('SELF:NEWS', n => $n));
+
+</%init>
+%################################################################
+<%method NEWS>
+<%args>
+    $n
+</%args>
+SELECT *, to_char(COALESCE(modified_date, created_date), 'HH24:MI DD Mon YYYY') AS date
+  FROM mi_content
+    INNER JOIN mi_g_object ON (mi_content.content_id = mi_g_object.g_obj_id)
+    INNER JOIN mi_content_version USING (content_id)
+  WHERE status = 'active'
+    AND content_type = 'news'
+    AND current_version_p
+  ORDER BY COALESCE(modified_date, created_date) DESC
+  LIMIT <% $n + 0 %>
+</%method>

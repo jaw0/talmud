@@ -1,0 +1,100 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Nov-04 15:18 (EST)
+%# Function: list all blocks
+%#
+%# $Id: list-blocks,v 1.8 2010/01/16 03:22:07 jaw Exp $
+
+<DIV CLASS=CONTEXT>IPDB &rarr; List</DIV>
+<P>
+<FORM>
+<TABLE CELLPADDING=0 CELLSPACING=0>
+<% $form |n%>
+</TABLE>
+</FORM>
+
+<TABLE BORDER=0 CLASS="IPDB-LIST">
+<TR><TH>Block</TH><TH>Status</TH><TH>Usage</TH><TH>Descr or Customer</TH><TH>SWIP</TH></TR>
+% while( my $r = $st->fetchrow_hashref() ){
+    <& SELF:summarylist, r => $r &>
+% }
+</TABLE>
+<P>
+%################################################################
+<%attr>    
+    title   => 'List Blocks'
+    acl	    => 'staff'
+</%attr>
+%################################################################
+<%args>
+    $qy      => undef
+    $sz      => undef
+</%args>
+%################################################################
+<%init>
+    my $db = Talmud::db();
+    my $s  = Talmud::sess();
+    my $q  = $s->{q};
+
+    my $form = "<TR><TD>Match Netblocks: </TD><TD>" .
+        $q->textfield('qy', $qy, 16, 64) . '</TD><TD>/' . $q->popup_menu('sz', [0..32], $sz) .
+        '</TD><TD>' . $q->submit('List', 'List') . "</TD></TR>\n";
+
+    my $st;
+    if( $qy ){
+        if( ! IPDB::valid_inet($qy) ){
+            my $a = IPDB::aton($qy);
+            my $b = $a | ~ IPDB::len_2_mask($sz);
+
+            $st = $db->do(
+                'select * from mi_ipdb_block where '.
+                    '    (sort_low <= ? and sort_high >= ?) '.      # find less specific block
+                    ' or (sort_low >= ? and sort_low <= ?) '.       # find more specific blocks
+                    ' order by sort_low', 
+                    "$a", "$a", "$a", "$b");                        # float => str => int
+        }else{
+            $st = $db->do(
+            'select mi_ipdb_block.* from mi_ipdb_block inner join mi_ipdb_meta using (meta_id) '.
+            ' where lower(swip_id) = ? or lower(netname) = ? or lower(pool) = ? order by sort_low',
+                lc($qy), lc($qy), lc($qy) );
+        }
+    }else{
+        $st = $db->do('select * from mi_ipdb_block order by sort_low');
+    }
+
+</%init>
+%################################################################
+<%method summarylist>
+<%args>
+    $r
+</%args>
+<%init>
+    my $color;
+    if( $r->{status} eq 'available' ){
+	$color = '24c926';
+    }elsif( $r->{status} eq 'allocated' ){
+	if( $r->{usage} eq 'internal' ){
+	    $color = 'FFFF0F';
+	}else{
+	    $color = 'FF5555';
+	}
+    }else{
+	$color = 'CCCCCC';
+    }
+
+    my $link = qq{<A HREF="view-block?oid=$r->{block_id}">$r->{netblock}/$r->{size}</A>};
+    print "<TR BGCOLOR=\"#$color\"><TD>$link</TD><TD>$r->{status}</TD><TD>$r->{usage}</TD>";
+    if( $r->{status} ne 'available' && $r->{usage} ne 'internal' ){
+	print "<TD>cust name</TD>"; # XXX
+    }else{
+	print "<TD>$r->{descr}</TD>";
+    }
+    if( $r->{status} eq 'available' ){
+	print "<TD><I>$r->{pool}</I></TD></TR>\n";
+    }else{
+	print "<TD>$r->{swip_id}</TD></TR>\n";
+    }
+
+</%init>
+</%method>

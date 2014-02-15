@@ -1,0 +1,135 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Nov-04 15:24 (EST)
+%# Function: 
+%#
+%# $Id: summary,v 1.7 2010/01/16 03:22:08 jaw Exp $
+
+<DIV CLASS=CONTEXT>IPDB &rarr; Summary</DIV>
+<P>
+<TABLE><TR><TD VALIGN=TOP>
+
+<H3>Usage Summary</H3>
+<TABLE>
+<TR><TD>Internal Use</TD><TD><% int(100 * $int  / ($alloc + $avail)) %>%</TD></TR>
+<TR><TD>Customer Use</TD><TD><% int(100 * $cust / ($alloc + $avail)) %>%</TD></TR>
+<TR><TD>Reserved</TD><TD><% int(100 * $resv / ($alloc + $avail)) %>%</TD></TR>
+<TR><TD>Available</TD><TD><% int(100 * $avail / ($alloc + $avail)) %>%</TD></TR>
+</TABLE>
+
+</TD>
+<TD VALIGN=TOP WIDTH=1 CLASS=VERTLINE><BR></TD>
+<TD VALIGN=TOP>
+
+<H3>Allocations</H3>
+<TABLE>
+% foreach my $n (0 .. 32) {
+%    next unless ( $alloc[$n] || $avail[$n] );
+<TR><TD WIDTH=20>&nbsp;</TD><TD>/<% $n %></TD><TD WIDTH=20>&nbsp;</TD><TD><% $alloc[$n] + 0 %> allocated</TD>
+<TD WIDTH=10>&nbsp;</TD><TD><I><% $avail[$n] + 0 %> free</I></TD></TR>
+% }
+</TABLE>
+
+</TD></TR></TABLE>
+
+<H3>Map</H3>
+<TABLE><TR><TD WIDTH=<% $WIDTH %>>
+<% $map |n%>
+</TD></TR></TABLE>
+<P>Key: <FONT COLOR=#24c926>Available</FONT> | <FONT COLOR=#FF0012>Allocated to Customer</FONT>
+| <FONT COLOR=#EEEE00>Internal Use</FONT> | <FONT COLOR=000000>Reserved</FONT><BR>
+<P>
+
+%################################################################
+<%attr>
+    title   => 'IPDB Summary'
+    acl	    => 'staff'
+</%attr>
+%################################################################
+<%init>
+    my $db = Talmud::db();
+    my( $int, $cust, $resv, $avail );
+    my( @alloc, @avail, @data );
+
+    my $st = $db->do('select * from mi_ipdb_block order by sort_low');
+
+    # summary data
+    while( my $r = $st->fetchrow_hashref() ){
+	push @data, $r;
+
+	my $n = IPDB::len_2_count( $r->{size} );
+	if( $r->{status} eq 'available' ){
+	    $avail += $n;
+	    $avail[ $r->{size} ] ++;
+	}else{
+	    $alloc[ $r->{size} ] ++;
+	    if( $r->{status} eq 'allocated' ){
+		if( $r->{usage} eq 'internal' ){
+		    $int += $n;
+		}else{
+		    $cust += $n;
+		}
+	    } elsif( $r->{status} eq 'reserved' ){
+		$resv += $n;
+	    }
+	}
+    }
+
+    # build map
+
+    my $alloc = $int + $cust + $resv;
+
+    my $HEIGHT = 6;
+    my $WIDTH  = 512;
+    if( $alloc + $avail >= IPDB::len_2_count(16) ){
+        $HEIGHT = 3;
+        $WIDTH = 512;
+    }
+    if( $alloc + $avail >= IPDB::len_2_count(14) ){
+        $HEIGHT = 3;
+        $WIDTH = 1024;
+    }
+    if( $alloc + $avail >= IPDB::len_2_count(12) ){
+        $HEIGHT = 1;
+        $WIDTH = 1024;
+    }
+
+    my $map;
+    my $pos = 0;
+    foreach my $r (@data){
+	my $width = IPDB::len_2_count( $r->{size} );
+	# $map .= "<!-- $r->{netblock} / $r->{size} -->";
+	while( $width ){
+	    my( $w );
+            if( $pos == $WIDTH ){
+                $map .= "<BR>\n";
+                $pos = 0;
+            }
+            if( $pos + $width > $WIDTH ){
+                $w = $WIDTH - $pos;
+            }else{
+                $w = $width;
+            }
+            $width -= $w;
+            $pos += $w;
+            if( $r->{status} eq "available" ){
+                $map .= "<IMG SRC=$imgurl/dot_green.gif HEIGHT=$HEIGHT WIDTH=$w>";
+            }elsif( $r->{status} eq "allocated" ){
+                if( $r->{usage} eq "internal" ){
+		    $map .= "<IMG SRC=$imgurl/dot_yellow.gif HEIGHT=$HEIGHT WIDTH=$w>";
+                }else{
+		    $map .= "<IMG SRC=$imgurl/dot_red.gif HEIGHT=$HEIGHT WIDTH=$w>";
+            	}
+            }else{
+                $map .= "<IMG SRC=$imgurl/dot_black.gif HEIGHT=$HEIGHT WIDTH=$w>";
+            }
+	}
+    }
+    $map .= "<BR>\n";
+
+</%init>
+%################################################################
+<%once>
+    my $imgurl = 'http://www.tcp4me.com/img/';
+</%once>

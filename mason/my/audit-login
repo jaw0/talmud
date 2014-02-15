@@ -1,0 +1,63 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-20 12:22 (EDT)
+%# Function: view my login audit data
+%#
+%# $Id: audit-login,v 1.7 2010/01/16 03:22:09 jaw Exp $
+
+<DIV CLASS=CONTEXT>Login Audit &rarr; <% $s->{auth}{user} %></DIV>
+<P>
+
+Please report suspicious activity to the site administrator<P>
+<TABLE>
+<TR><TD COLSPAN=3><B>Active Sessions</B></TD></TR>
+% while( my $r = $cur->fetchrow_hashref() ){
+<TR><TD>&nbsp;&nbsp;&nbsp;</TD><TD> from ip: <% $r->{fromip} %></TD><TD> at time: <% $r->{atime} %></TD></TR>
+% }
+
+<TR><TD COLSPAN=3><BR></TD></TR>
+
+
+<TR><TD COLSPAN=3><B>Recent Login Failures</B></TD></TR>
+% while( my $r = $fail->fetchrow_hashref() ){
+<TR><TD>&nbsp;&nbsp;&nbsp;</TD><TD> from ip: <% $r->{fromip} %></TD><TD> at time: <% $r->{atime} %></TD></TR>
+% }
+
+<TR><TD COLSPAN=3><BR></TD></TR>
+
+<TR><TD COLSPAN=3><B>Recent Sessions</B></TD></TR>
+% while( my $r = $rec->fetchrow_hashref() ){
+<TR><TD>&nbsp;&nbsp;&nbsp;</TD><TD> from ip: <% $r->{fromip} %></TD><TD> at time: <% $r->{atime} %></TD></TR>
+% }
+
+<TR><TD COLSPAN=3><BR></TD></TR>
+
+</TABLE>
+
+<A HREF="/">Continue to Home page</A><P>
+
+%################################################################
+<%attr>
+    title   => 'Login Audit'
+    acl	    => 'user'
+    refresh => 300
+</%attr>
+%################################################################
+<%init>
+    my $s  = Talmud::sess();
+    my $db = Talmud::db();
+
+    my $cur  = $db->do( "select fromip, to_char(acct_time, 'YYYY Mon DD HH24:MI:SS') as atime ".
+		"from mi_login_acct where user_id = ? and success_p ".
+		"and cookie_id is not null order by acct_time desc", $s->{auth}{uid} );
+
+    my $fail = $db->do( "select fromip, to_char(acct_time, 'YYYY Mon DD HH24:MI:SS') as atime ".
+		"from mi_login_acct where user_id = ? and not success_p ".
+		"order by acct_time desc limit 10", $s->{auth}{uid} );
+
+    my $rec  = $db->do( "select fromip, to_char(acct_time, 'YYYY Mon DD HH24:MI:SS') as atime ".
+		"from mi_login_acct where user_id = ? and success_p ".
+		"and cookie_id is null order by acct_time desc limit 10", $s->{auth}{uid} );
+
+</%init>

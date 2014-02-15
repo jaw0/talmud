@@ -1,0 +1,66 @@
+%# -*- mason -*-
+%# Copyright (c) 2007 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Created: 2007-Apr-22 23:24 (EDT)
+%# Function: 
+%#
+%# $Id: user-add,v 1.2 2010/01/16 03:22:12 jaw Exp $
+
+<%args>
+    $real
+    $nick
+    $email
+    $pass
+</%args>
+%################################################################
+<%attr>
+    acl	    => 'secadmin acctadmin :-'
+</%attr>
+%################################################################
+<%init>
+
+    my $s   = Talmud::sess();
+    my $db  = Talmud::db();
+    my $uid = Talmud::g_obj_next_id($db);
+
+    eval {      
+        $db->start();
+
+        Talmud::create_object( $db, 'users/user', $uid, 'rwc; rc' );
+
+        # set user as owner of them self
+        $db->update_hash( 'mi_g_object', {
+            g_obj_owner => $uid,
+        }, [ g_obj_id => $uid ] );
+
+        $db->insert_hash( 'mi_party', {
+            party_id    => $uid,
+            email       => ($email || undef),
+        } );
+
+        $db->insert_hash( 'mi_person', {
+            person_id   => $uid,
+            realname    => ($real || undef),
+            category    => 'staff',
+        } );
+
+        $db->insert_hash( 'mi_user', {
+            user_id     => $uid,
+            nickname    => ($nick || undef),
+            passwd      => Talmud::Passwd::encrypt($pass),
+        } );
+
+        $db->do( 'select mi_add_user_to_group(?, ?)', $uid, 'staff');
+
+        $db->commit();
+    };
+    if( $@ ){
+        my $emsg = $@;
+        $emsg = $db->error_sanitize( $emsg );
+        $db->rollback();
+	die $emsg;
+    }
+
+    return $uid;
+
+</%init>

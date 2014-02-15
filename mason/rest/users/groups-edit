@@ -1,0 +1,63 @@
+%# -*- mason -*-
+%# Copyright (c) 2007 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Created: 2007-Apr-22 23:41 (EDT)
+%# Function: 
+%#
+%# $Id: groups-edit,v 1.2 2010/01/16 03:22:12 jaw Exp $
+
+<%args>
+    $oid
+    @gid
+</%args>
+%################################################################
+<%attr>
+    acl	    => 'secadmin acctadmin :-'
+</%attr>
+%################################################################
+<%init>
+    my $s  = Talmud::sess();
+    my $db = Talmud::db();
+
+    # get list of users current groups
+    my @g = $db->select_1column('select group_id from mi_user_group where user_id = ?', $oid);
+
+    # only secadmin can adjust certain groups
+    my @spec = qw(secadmin acctadmin secoper audit);
+    my @sgid = $db->select_1column('select group_id from mi_group where groupname in ('.
+		join(',', map{'?'} @spec) . ')', @spec);
+
+    my(%add, %del);
+    @add{@gid} = @gid;
+    delete @add{@g};
+    delete @add{@sgid} unless $s->{auth}{groups}{secadmin};
+
+    @del{@g} = @g;
+    delete @del{@gid};
+    delete @del{@sgid} unless $s->{auth}{groups}{secadmin};
+
+    eval {
+        $db->start();
+
+	$db->insert_hash('mi_party_group', {
+	    party_id	=> $oid,
+	    group_id	=> $_,
+	}) for sort keys %add;
+
+	$db->do('delete from mi_party_group where party_id = ? and group_id = ?', $oid, $_)
+	    for sort keys %del;
+
+	Talmud::touch_object( $db, $oid );
+
+	$db->commit();
+    };
+    if( $@ ){
+        my $emsg = $@;
+        $emsg = $db->error_sanitize( $emsg );
+        $db->rollback();
+	die $emsg;
+    }
+
+    return $oid;
+
+</%init>

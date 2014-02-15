@@ -1,0 +1,104 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-May-07 15:45 (EDT)
+%# Function: process add ticket form and redirect
+%#
+%# $Id: add-tkt-1,v 1.15 2010/01/18 03:15:29 jaw Exp $
+%#
+
+<%attr>
+    title   => 'New Ticket'
+    acl	    => 'user'
+</%attr>
+%################################################################
+<%args>
+    $content
+    $format
+    $group
+    $seve
+    $prio
+    $subj
+</%args>
+%################################################################
+<%init>
+
+    my $s   = Talmud::sess();
+    my $db  = Talmud::db();
+    my $cid = Talmud::g_obj_next_id($db);
+
+    my $f  = $m->comp('add-tkt:FORM');
+
+    $m->comp('/sys/form:fixup', form => $f, args => \%ARGS);
+    my $err = $m->comp('/sys/form:validate', form => $f, args => \%ARGS);
+    if( $err ){
+	return $m->comp( 'add-tkt', err => $err, dfl => \%ARGS );
+    }
+
+    $format = 'plain' if $format eq 'text';
+
+    eval{
+	$db->start();
+	# create ticket
+	Talmud::create_object($db, 'tkt/ticket', $cid, undef, $group);
+
+        $db->do('lock table mi_ticket in exclusive mode');
+        my $tktno = $db->select_scalar('select MAX(tkt_number) from mi_ticket') || 1000;
+        $tktno ++;
+
+	$db->insert_hash('mi_task', {
+	    task_id	=> $cid,
+	    summary     => ($subj  || undef),
+	} );
+
+        $db->insert_hash('mi_ticket', {
+	    tkt_id	=> $cid,
+	    tkt_number  => $tktno,
+	    priority_id => $prio,
+	    severity_id => $seve,
+	    creator     => $s->{auth}{uid},
+	} );
+
+	# create event
+	my $eid = Talmud::create_object($db, 'tkt/event');
+
+	$db->insert_hash( 'mi_tkt_event', {
+	    event_id	=> $eid,
+	    tkt_id	=> $cid,
+	    event_who	=> $s->{auth}{uid},
+	    action	=> 'create',
+	} );
+
+	# create content
+	my $did = Talmud::create_object($db, 'tkt/content', undef, 'r; r', $eid);
+
+	$db->insert_hash('mi_content', {
+	    content_id  => $did,
+	    content_type => 'tkt',
+	    mime_type	=> "text/$format",
+	} );
+
+	$db->insert_hash('mi_content_version', {
+	    content_id  => $did,
+	    version_id  => Talmud::create_object($db, 'generic/version'),
+	    content	=> ($content || undef),
+	} );
+
+	$db->commit();
+
+	# send notifications
+        Talmud::notify_watchers($db, $group, $s->{auth}{uid}, "New Ticket #$tktno - $subj");
+
+    };
+    if( $@ ){
+	my $emsg = $@;
+	$emsg = $db->error_sanitize( $emsg );
+	$db->rollback();
+	$m->comp('/sys/error.mas', msg => $emsg);
+	return $m->comp( 'add-tkt', cid => $cid, dfl => \%ARGS );
+    }
+    
+    # view ticket
+    $m->comp('/sys/redirect.mas', where => "/tkt/view-tkt?oid=$cid" );
+
+</%init>

@@ -1,0 +1,136 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-May-05 16:38 (EDT)
+%# Function: top autohandler: check ACLs, wrap with common look+feel
+%#
+%# $Id: autohandler,v 1.20 2010/08/29 15:06:57 jaw Exp $
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML><HEAD>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=utf-8">
+<TITLE><% $m->base_comp->attr('title') %></TITLE>
+% if( $m->base_comp->attr('refresh') ){
+<META HTTP-EQUIV="REFRESH" CONTENT="<% $m->base_comp->attr('refresh') %>">
+% }
+<LINK REL="stylesheet" TYPE="text/css"  HREF="<% $style %>">
+%# <link REL="icon" HREF="http://www.tcp4me.com/img/smile.gif" TYPE="image/gif">
+
+</HEAD><BODY>
+% if ( $m->base_comp->attr('popup_p')) {
+  <script language="javascript">
+  //<!--
+    function popup(url){
+	var win;
+	win = window.open(url, 'POPUP', "toolbar=no,status=no,location=no,menubar=no,"+
+	    "resizable=yes,scrollbars=yes,height=500,width=450", 'yes');
+	win.focus();
+	win.location = url;
+    }
+  //-->
+  </script>
+% }
+<TABLE WIDTH="100%">
+
+% if ( $m->base_comp->attr('navbar_p')) {
+  <TR><TD>
+  <TABLE CELLPADDING=4 CELLSPACING=0 CLASS=NAVBAR WIDTH="100%">
+  <TR>
+  <!-- left corner logo -->
+  <TD ROWSPAN=2 CLASS=NAVLOGO>[insert]<BR>[LOGO]<BR>[here]</TD>
+  <!-- top nav bar -->
+  <TD CLASS=NAVCENTER>
+  <& SELF:navlinks1 &>
+  </TD>
+  <TD ROWSPAN=2 ALIGN=RIGHT CLASS=SEARCH><& SELF:gotobox &><!-- <& SELF:searchbox &> --></TD>
+
+  <!-- right corner -->
+  <TD ROWSPAN=2 CLASS=NAVRIGHT>
+  &nbsp;
+  </TD></TR>
+
+  <TR><TD CLASS=NAVCENTER ALIGN=LEFT>
+	<TABLE WIDTH="100%"><TR>
+	<TD ALIGN=LEFT><B>User:</B> <A CLASS=PLAIN TITLE="About me..." HREF="/my/view-self"><% $user %></A></TD>
+%if( $config->{show_argus} ){
+	<TD ALIGN=RIGHT><& /sys/argus.mas &></TD>
+%}
+	</TR></TABLE>
+  </TD></TR>
+  </TABLE>
+  </TD></TR>
+% }
+<TR><TD CLASS=MAINBODY>
+% $m->call_next();
+</TD></TR>
+</TABLE>
+<br><br>
+
+<DIV CLASS=NAVFOOTER>
+% if( $config->{show_source} ){
+  <div style="float:right;">
+  <A HREF="/show-src?p=<% $page_url %>">show source</A>
+  </div>
+%}
+    &copy;MMIII <a href="http://www.tcp4me.com">jaw</a>
+</DIV>
+</BODY></HTML>
+
+%################################################################
+<%flags>
+    inherit	=> '/aclhandler'
+</%flags>
+%################################################################
+<%attr>
+    navbar_p	=> 1
+    context	=> undef
+    pkg		=> undef
+    refresh	=> undef
+    popup_p	=> undef
+</%attr>
+%################################################################
+<%init>
+    # set some vars to display on page
+    my $s = Talmud::sess();
+    my $config = Talmud::config();
+
+    my $user  = $s->{auth}{user}  || 'not logged in';
+    my $style = $s->{pref}{theme} || '/style.css';
+
+    my $page_url = $s->{q}->url(-absolute => 1);
+
+</%init>
+%################################################################
+<%cleanup>
+    $m->comp('/sys/indexer.mas');
+</%cleanup>
+%################################################################
+<%method navlinks1>
+<&| /sys/confsection &>
+  <A HREF="/"> Home </A> &nbsp;&nbsp;
+  <A HREF="/contacts/"> Contacts </A> &nbsp;&nbsp;
+  <A SECTION=tkt  HREF="/tkt/"> Ticket </A> &nbsp;&nbsp;
+  <A              HREF="/doc/"> Docs </A> &nbsp;&nbsp;
+  <A SECTION=eqmt HREF="/eqmt/"> Eqmt </A> &nbsp;&nbsp;
+  <A SECTION=ckt  HREF="/ckt/"> Ckt </A> &nbsp;&nbsp;
+  <A SECTION=ipdb HREF="/ipdb/"> IPDB </A> &nbsp;&nbsp;
+  <A              HREF="/logout" TITLE="I'm all finished. Bye bye!">Log Out</A> &nbsp;&nbsp;
+</&>
+</%method>
+%################################################################
+<%method navlinks2>
+</%method>
+%################################################################
+<%method searchbox>
+  <FORM ACTION="/generic/search">
+  <INPUT TITLE="enter a search query" TYPE=TEXT NAME=q SIZE=16 MAXLENGTH=32>
+  <INPUT TITLE="What are you looking for?" TYPE=SUBMIT NAME=Search Value=Search>
+  </FORM>
+</%method>
+%################################################################
+<%method gotobox>
+  <FORM ACTION="/generic/goto">
+  <INPUT TITLE="enter a destination" TYPE=TEXT NAME=q SIZE=16 MAXLENGTH=32>
+  <INPUT TITLE="Where do you want to go today?" TYPE=SUBMIT NAME="GO TO" Value="Find">
+  </FORM>
+</%method>

@@ -1,0 +1,82 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-09 09:38 (EDT)
+%# Function: process edit block form and redirect
+%#
+%# $Id: edit-block-1,v 1.7 2010/01/16 03:22:06 jaw Exp $
+
+<%attr>
+    title   => 'Edit Block'
+    acl	    => 'staff :w'
+</%attr>
+%################################################################
+<%args>
+    $oid
+    $prevstatus
+</%args>
+%################################################################
+<%init>
+    my $db = Talmud::db();
+    my $s  = Talmud::sess();
+
+    my $form = $m->comp('alloc-block:FORM');
+    shift @$form;	# remove size
+    unshift @$form, { name => 'status', type => 'menu', sql => 'status' };
+
+    $m->comp('/sys/form:fixup', form => $form, args => \%ARGS);
+    my $err = $m->comp('/sys/form:validate', form => $form, args => \%ARGS);
+    if( $err ){
+	return $m->comp( 'edit-block', oid => $oid, err => $err, dfl => \%ARGS );
+    }
+
+    eval {
+	$db->start();
+
+	my $data = $m->comp('/sys/form:sql_from_form',
+		form   => $form,
+		args   => \%ARGS,
+		sqlcol => 'sql',
+	);
+
+	# handle status change
+	my $st = $data->{status};
+	print STDERR "new status: $st\n";
+
+	if( $st eq 'available' ){
+	    foreach my $k ( keys %$data ){
+		next if $k eq 'pool';		# preserve pool
+		$data->{$k} = \'NULL';
+	    }
+	    $data->{justified_p} = 'false';
+	    $data->{status} = 'available';
+
+	    # delete swip before removing it from db
+	    IPDB::SWIP::modify( $db, $oid ) unless $ARGS{swipp} eq 'no';
+	}
+
+	$db->update_hash('mi_ipdb_block', $data, [block_id => $oid] );
+	Talmud::touch_object( $db, $oid );
+
+	if( $st eq 'available' ){
+	    IPDB::attempt_join( $db, $oid );
+	}elsif( $prevstatus eq 'available' ){
+	    # changed from avail => not avail
+	    IPDB::SWIP::alloc( $db, $oid )  unless $ARGS{swipp} eq 'no';
+	}else{
+	    IPDB::SWIP::modify( $db, $oid ) unless $ARGS{swipp} eq 'no';
+	}
+
+	$db->commit();
+    };
+
+    if( $@ ){
+	my $emsg = $@;
+	$emsg = $db->error_sanitize( $emsg );
+	$db->rollback();
+	$m->comp('/sys/error.mas', msg => $emsg);
+	return $m->comp( 'edit-block', oid => $oid, dfl => \%ARGS );
+    }
+    
+    $m->comp('/sys/redirect.mas', where => "/ipdb/view-block?oid=$oid" );
+</%init>

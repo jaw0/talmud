@@ -1,0 +1,77 @@
+
+
+
+notes
+================================================================
+
+
+cust logs in, gets acct data
+
+staff logs in, gets my portal
+
+contacts:
+	list
+	search
+	view/edit
+	add
+
+================================================================
+url space:
+
+	/
+	/cust	=> cust view of their acct + stuff
+
+	/my
+	/user
+	/bill
+	/tkt
+	/ckt
+	/eqmt
+
+	/news
+		add
+		view
+		edit
+		list
+	/doc			=> "etp"
+		add
+		view
+		edit
+		list
+	/generic
+		search		=> find all matching objects
+		find		=> find a specific object
+		view		=> redirect
+	/contacts
+		add
+		view
+		edit
+		list
+
+	/sys			=> misc mason comps
+
+================================================================
+common web stuff
+	methods: add, view, edit, list
+	url params:
+		oid
+		sortby
+		parent
+
+================================================================
+
+doc
+	build out of content
+	one top page, tree structure
+	each page: title, content, child links, comment section
+
+
+news
+	linear structure, will never have a refers_to
+	each page: title, content, comment section
+
+doc + news 
+	code for view/add/list/edit will be nearly identical
+	and should be in common generic library
+
+	sys/content.mas, oid => xxx, style => doc|news|comment|...

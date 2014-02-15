@@ -1,0 +1,110 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-03 19:32 (EDT)
+%# Function: insert content into index
+%#
+%# $Id: indexer.mas,v 1.1 2010/08/17 14:48:02 jaw Exp $
+
+<%init>
+
+    my $db = Talmud::SQL->connect();
+    $db->start();
+
+    # get last run timestamp
+    my $t = $db->select_scalar("select coalesce(modified_date, created_date) from mi_g_object where g_obj_type = ".
+			  "mi_g_object_type('search/object')");
+
+    eval {
+        my $n = 0;
+
+        $db->start();
+        for my $stmt (split /\n\n/, $m->scomp('SELF:SQLS')){
+            my $st = $db->do($stmt, $t);
+
+            while( my $r = $st->fetchrow_arrayref() ){
+                my( $id, $cont ) = @$r;
+
+                $m->comp('SELF:UPDATE', db => $db, id => $id, w => $cont );
+                $n ++;
+            }
+        }
+
+        # update timestamp
+        if( $n ){
+            $db->do("update mi_g_object set modified_date = now() where g_obj_type = ".
+                "mi_g_object_type('search/object')");
+        }
+        $db->commit();
+    };
+
+    if( $@ ){
+        my $emsg = $@;
+        $db->rollback();
+        die "$emsg\n";
+    }
+</%init>
+%################################################################
+<%method UPDATE>
+<%args>
+    $db
+    $id
+    $w
+</%args>
+<%perl>
+    # drop old content
+    $db->do("delete from mi_search_index where object = ?", $id );
+
+    my %words = Talmud::Search::wordlist( $w );
+
+    foreach my $w (keys %words){
+	# print STDERR "  word $w: ", $words{$w}, "\n";
+        $db->insert_hash('mi_search_index', {
+            object  => $id,
+            score   => $words{$w},
+            word    => $w,
+        } );
+    }
+</%perl>
+</%method>
+%################################################################
+<%method SQLS>
+-- content
+select content_id, content || ' ' || summary
+  from mi_content_version inner join mi_g_object on (version_id = g_obj_id)
+    inner join mi_content using (content_id)
+  where current_version_p and created_date > ?
+    and searchable_p
+    and substr(mime_type, 1, 5) = 'text/'
+
+-- people
+select person_id, realname
+  from mi_person inner join mi_g_object on (person_id = g_obj_id)
+  where coalesce(modified_date, created_date) > ?
+
+-- eqmt
+select eqmt_id, fqdn
+  from mi_eqmt inner join mi_g_object on (eqmt_id = g_obj_id)
+  where coalesce(modified_date, created_date) > ?
+
+-- tasks/tkts
+select task_id, summary
+  from mi_task inner join mi_g_object on (task_id = g_obj_id)
+  where coalesce(modified_date, created_date) > ?
+
+-- ckt ids
+select wire_id, id
+  from mi_ckt_wire inner join mi_g_object on (circuit_id = mi_g_object.g_obj_id)
+  where coalesce(modified_date, created_date) > ?
+
+-- ipdb
+select meta_id, netname
+  from mi_ipdb_meta inner join mi_g_object on (meta_id = mi_g_object.g_obj_id)
+  where coalesce(modified_date, created_date) > ?
+
+select block_id, swip_id, descr
+  from mi_ipdb_block inner join mi_g_object on (block_id = mi_g_object.g_obj_id)
+  where coalesce(modified_date, created_date) > ?
+
+</%method>
+

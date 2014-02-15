@@ -1,0 +1,48 @@
+%# -*- mason -*-
+%# Copyright (c) 2007 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Created: 2007-Apr-22 23:10 (EDT)
+%# Function: 
+%#
+%# $Id: group-add,v 1.2 2010/01/16 03:22:12 jaw Exp $
+
+<%args>
+    $name
+    $desc
+</%args>
+%################################################################
+<%attr>
+    acl	=> 'secadmin acctadmin :-'
+</%attr>
+%################################################################
+<%init>
+    my $s   = Talmud::sess();
+    my $db  = Talmud::db();
+    my $gid = Talmud::g_obj_next_id($db);
+
+    eval{       
+        $db->start();
+        Talmud::create_object( $db, 'users/group', $gid );
+
+        $db->insert_hash('mi_party', {
+            party_id	=> $gid,
+        } );
+
+        $db->insert_hash('mi_group', {
+            group_id    => $gid,
+            groupname   => ($name || undef),
+            descr       => ($desc || undef),
+        } );
+
+        $db->commit();
+    };
+    if( $@ ){
+        my $emsg = $@;
+        $emsg = $db->error_sanitize( $emsg );
+        $db->rollback();
+	die $emsg;
+    }
+
+    return $gid;
+
+</%init>

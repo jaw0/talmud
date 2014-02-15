@@ -1,0 +1,38 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-22 16:42 (EDT)
+%# Function: generate list of related items
+%#
+%# $Id: related.mas,v 1.9 2010/08/21 16:06:53 jaw Exp $
+
+<%args>
+    $oid
+</%args>
+%################################################################
+% while( my $r = $st->fetchrow_hashref() ){
+%#   print STDERR "  => $oid, $name, $url\n";
+%    next if $distinct{ $r->{url} } ++;
+<A HREF="/<% $r->{url} %>"><% $r->{name} %></A><BR>
+% }
+
+%################################################################
+<%init>
+    my $db = Talmud::db();
+
+    my $st = $db->do($m->scomp('SELF:RELATED'), $oid, $oid);
+    my %distinct;
+
+</%init>
+%################################################################
+<%method RELATED>
+select mi_object_name( mi_object_best(obj), true )  AS name,
+    mi_object_fullurl( mi_object_best(obj) )        AS url,
+    g_obj_id AS oid
+  from (select obj_a as obj, rel_type_name from mi_g_obj_rel where obj_b = ?
+        union
+        select obj_b as obj, rel_type_name from mi_g_obj_rel where obj_a = ? ) S
+    inner join mi_g_object on (obj = g_obj_id)
+    where rel_type_name != 'bkmk/attach'
+  order by created_date desc
+</%method>

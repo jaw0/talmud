@@ -1,0 +1,60 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Created: 2003-Nov-10 18:27 (EST)
+%# Function: 
+%#
+%# $Id: list-new-tasks.mas,v 1.8 2010/08/21 20:18:30 jaw Exp $
+
+% while( my $r = $st->fetchrow_hashref ){
+	<A HREF="<% $r->{url} %>" TITLE="<% $r->{name} ? "$r->{name} @ $r->{crdate}" : '' %> <% $r->{deadline} ? "due: $r->{deadline}" : '' %>"><%$r->{summary} %></A><BR>
+% }
+%################################################################
+<%args>
+    $n
+</%args>
+%################################################################
+<%init>
+    my $db  = Talmud::db();
+    my $s   = Talmud::sess();
+    my $uid = $s->{auth}{uid};
+    my( $wh, @wh );
+
+    push @wh, $uid, $uid;
+
+    # does user have a pref set?
+    my $pg = $s->{pref}{section};
+    if( $pg ){
+	$wh .= 'or mi_task.refers_to = ?';
+	push @wh, $pg;
+    }
+
+    my $st = $db->do($m->scomp('SELF:TASKS', wh => $wh, n => $n), @wh);
+
+</%init>
+%################################################################
+<%method TASKS>
+<%args>
+    $n
+    $wh
+</%args>
+SELECT mi_object_fullurl(task_id) AS url,
+    summary,
+    mi_object_name(task_id, false) AS name,
+    to_char(created_date, 'HH24:MI DD Mon') AS crdate,
+    to_char(deadline, 'DD Mon') AS deadline
+  FROM mi_task
+    INNER JOIN mi_g_object ON (task_id = g_obj_id)
+  WHERE active_p
+    AND ( owner IS NULL OR owner = ? )
+%#    -- un-classified, or I have no preference, or my group
+    AND ( refers_to = (select section_id from mi_tkt_section where tag = 'UNK')
+%#    -- in a bookmarked section
+            OR refers_to in (select obj_b from mi_g_obj_rel where rel_type_name = 'bkmk/attach' and obj_a = ?)
+            OR refers_to is null
+            <% $wh |n%> )
+%#   -- not a sub-task
+    AND not mi_isa_task(refers_to)
+  ORDER BY created_date DESC
+  LIMIT <% $n + 0 %>
+</%method>

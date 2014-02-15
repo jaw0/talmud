@@ -1,0 +1,52 @@
+
+functions:
+	add fac, manu, hwtype
+	list all facilities
+	list all eqmt
+
+facility:
+	add eqmt
+	view/edit
+	add comment
+	links:
+		list of eqmt
+
+eqmt:
+	add interface
+	view/edit
+	add comment
+	links:
+		list of tkts
+		list of ckts
+		list of custs
+		facility
+================================================================
+list:
+	all, one facility
+	sortby: rack, facility, console, power, switch, name, ip
+
+
+================================================================
+url space:
+
+	/eqmt
+	/eqmt/manu
+		add
+		edit
+		view
+		list
+	/eqmt/hw
+		add
+		edit
+		view
+		list
+	/eqmt/fac
+		add
+		view
+		edit
+		list
+	/eqmt/eqmt
+		add
+		view
+		edit
+		list

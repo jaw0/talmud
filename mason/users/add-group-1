@@ -1,0 +1,30 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-09 11:01 (EDT)
+%# Function: process add group form and redirect
+%#
+%# $Id: add-group-1,v 1.7 2010/01/15 18:13:16 jaw Exp $
+
+<%attr>
+    title   => 'Add Group'
+    acl	    => 'secadmin acctadmin:-'
+</%attr>
+%################################################################
+<%args>
+    $group
+    $descr
+</%args>
+%################################################################
+<%init>
+
+    my $gid = $m->comp('/sys/domethod',
+	method	=> 'users/group-add',
+	args	=> \%ARGS,
+	error	=> ['/users/add-group'],
+    );
+
+    # view parent doc
+    $m->comp('/sys/redirect.mas', where => "/users/view-group?oid=$gid" );
+
+</%init>

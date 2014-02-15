@@ -1,0 +1,59 @@
+%# -*- mason -*-
+%# Copyright (c) 2004 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Created: 2004-Jan-08 17:31 (EST)
+%# Function: add argus user
+%#
+%# $Id: add-user-2,v 1.2 2010/01/16 03:22:09 jaw Exp $
+
+<%attr>
+	title	=> 'Add User'
+	acl	=> 'staff'
+</%attr>
+%################################################################
+<%args>
+
+</%args>
+%################################################################
+<%init>
+	my $db  = Talmud::db();
+	my $s   = Talmud::sess();
+	my $uid = Talmud::g_obj_next_id($db);
+
+	my $f0 = $m->comp('add-user:form');
+	my $f1 = $m->comp('add-user-1:form');
+	my $form = [ @$f0, @$f1 ];
+
+	$m->comp('/sys/form:fixup', form => $form, args => \%ARGS);
+	my $err = $m->comp('/sys/form:validate', form => $form, args => \%ARGS);
+	if( $err ){
+		return $m->comp( 'add-user', err => $err, dfl => \%ARGS );
+ 	}
+
+	eval {
+		$db->start();
+		my $data = $m->comp('/sys/form:sql_from_form',
+			form   => $form,
+			args   => \%ARGS,
+			sqlcol => 'sqlname',
+		);
+
+		$data->{user_id} = $uid;
+		$data->{passwd}  = Talmud::Passwd::encrypt( $data->{passwd} );
+		# RSN - other data...
+
+		Talmud::create_object( $db, 'mon/user', $uid );
+		$db->insert_hash('mon_user', $data );
+		$db->commit();
+	};
+
+    	if( $@ ){
+    	     my $emsg = $@;
+    	     $emsg = $db->error_sanitize( $emsg );
+    	     $db->rollback();
+    	     $m->comp('/sys/error.mas', msg => $emsg);
+    	     return $m->comp( 'add-user', dfl => \%ARGS );
+    	}
+    
+	$m->comp('/sys/redirect.mas', where => "/mon/view-user?oid=$uid" );
+</%init>

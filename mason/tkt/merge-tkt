@@ -1,0 +1,75 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-09 11:53 (EDT)
+%# Function: merge tickets and redirect
+%#
+%# $Id: merge-tkt,v 1.9 2010/01/16 03:22:16 jaw Exp $
+
+<%attr>
+    title   => 'Merge Ticket'
+    acl	    => 'staff :w'
+</%attr>
+%################################################################
+<%args>
+    $oid
+    $into
+</%args>
+%################################################################
+<%init>
+    my $s  = Talmud::sess();
+    my $db = Talmud::db();
+
+    $into =~ s/^\#//;
+    my $new = $db->select_scalar("select tkt_id from mi_ticket where tkt_number = ?", $into );
+    my $num = $db->select_scalar("select tkt_number from mi_ticket where tkt_id = ?", $oid);
+
+    unless( $new ){
+	$m->comp('/sys/error.mas', msg => "Ticket not found for merge");
+	return $m->comp( 'view-tkt', oid => $oid );
+    }
+
+    eval {
+	$db->start();
+
+	# update old ticket
+	Talmud::touch_object( $db, $oid );
+	$db->update_hash( 'mi_ticket', {
+		merged_into => $new,
+		status_id   => \"(select status_id from mi_tkt_status where name = 'closed')",
+	}, [tkt_id => $oid] );
+
+	# update new ticket
+	Talmud::touch_object( $db, $new );
+	$db->update_hash('mi_ticket', { updated => \'now()' }, [tkt_id => $new] );
+
+	# add event to new ticket
+	$db->insert_hash('mi_tkt_event', {
+		event_id	=> Talmud::create_object($db, 'tkt/event'),
+		tkt_id		=> $new,
+		event_who	=> $s->{auth}{uid},
+		action		=> "merge",
+		details		=> "merged tkt #$num",
+	} );
+
+	# move old events to new ticket
+	$db->update_hash('mi_tkt_event', {
+		tkt_id		=> $new,
+		tkt_id_orig	=> $oid,
+	}, [tkt_id => $oid] );
+
+	$db->commit();
+		
+    };
+    if( $@ ){
+	my $emsg = $@;
+	$emsg = $db->error_sanitize( $emsg );
+	$db->rollback();
+	$m->comp('/sys/error.mas', msg => $emsg);
+	return $m->comp( 'view-tkt', oid => $oid );
+    }
+
+    # QQQ - redirect where?
+    $m->comp('/sys/redirect.mas', where => "/tkt/view-tkt?oid=$new" );
+
+</%init>

@@ -1,0 +1,93 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-May-05 13:44 (EDT)
+%# Function: process login
+%#
+%# $Id: login-1,v 1.9 2010/01/16 03:21:50 jaw Exp $
+%#
+%# component always redirects, no HTML is generated
+%#
+<%args>
+	$user
+	$pass
+</%args>
+<%flags>
+	inherit => undef
+</%flags>
+<%init>
+	# verify user/dom/pass
+	my $s  = Talmud::sess();
+	my $db = Talmud::db();
+
+	my $stmt = <<EOSQL;
+SELECT passwd, user_id
+  FROM mi_site_user
+  WHERE ( nickname = ? OR email = ? )
+    AND status = 'active'
+EOSQL
+	;
+	my( $p, $uid ) = $db->select_1array($stmt, $user, $user);
+
+	$pass =~ s/^\s*//;
+	$pass =~ s/\s*$//;
+
+	# QQQ - is passwd encrypted?
+
+	if( Talmud::Passwd::verify( $pass, $p ) ){
+	    # set up cookies
+	    $s->{co} = Talmud::new_cookie();
+
+	    eval {
+		$db->start();
+		$db->insert_hash('mi_web_cookie', {
+			user_id	        => $uid,
+			cookie_id	=> $s->{co},
+			server		=> $ENV{SERVER_NAME},
+			userip		=> $ENV{REMOTE_ADDR},
+		} );
+
+		$db->insert_hash('mi_login_acct', {
+			username	=> $user,
+			user_id		=> $uid,
+			cookie_id	=> $s->{co},
+			success_p	=> 'true',
+			fromip		=> $ENV{REMOTE_ADDR},
+		} );
+		$db->commit();
+	    };
+	    if( $@ ){
+		$db->rollback();
+	    }
+
+	    $r->header_out('Set-Cookie', $s->{q}->cookie(
+		-name    => Talmud::cookiename(),
+		-value   => $s->{co},
+		-path    => '/',
+		-expires => '+1M' ));
+
+	    return $m->comp( '/sys/redirect.mas', where => '/my/audit-login' );
+	}
+
+
+	$db->insert_hash('mi_login_acct', {
+		username	=> $user,
+		user_id		=> $uid,
+		success_p	=> 'false',
+		fromip		=> $ENV{REMOTE_ADDR},
+	});
+
+	# check activity from IP
+
+	my $n = $db->select_scalar("select COUNT(*) from mi_login_acct where not success_p and fromip = ? ".
+		"and now() - acct_time < CAST('10 minutes' AS interval) ", $ENV{REMOTE_ADDR} );
+
+	if( $n > 5 ){
+		print STDERR "REPEATED LOGIN FAILURES FROM $ENV{REMOTE_ADDR} - $user\n";
+		sleep 5;
+	}
+
+
+	$m->clear_buffer();
+	$m->comp( '/login', emsg => 'invalid login', %ARGS );
+</%init>

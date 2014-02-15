@@ -1,0 +1,87 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-May-06 13:51 (EDT)
+%# Function: display comments
+%#
+%# $Id: comments.mas,v 1.14 2010/08/29 14:45:01 jaw Exp $
+%#
+<TABLE CLASS=COMMENTS<% $wide ? ' WIDTH=100%' : '' %>>
+%################################################################
+<%args>
+    $oid
+    $fnc
+    $wide => undef
+</%args>
+%################################################################
+<%perl>
+    my $db = Talmud::db();
+
+    my $st = $db->do($m->scomp('SELF:COMMENTS'), $oid);
+
+    while( my $h = $st->fetchrow_hashref ){
+	# check acl for each comment
+	next if $m->comp('/sys/chkacl.mas',
+			    db	    => $db,
+			    owner   => $h->{created_user},
+			    oacl    => $h->{acl},
+			    acl     => undef );
+
+	$m->comp('SELF:header',
+		 wide   => $wide,
+		 contid => $h->{content_id},
+		 user   => $h->{created_user},
+		 date   => $h->{date},
+		 title  => $h->{summary},
+		 color  => $h->{sortkey} ? 'FFDDDD' : 'DDDDFF',
+		 style  => $h->{sortkey} ? '-P' : '',
+		 );
+
+	print "<TR CLASS=\"COMMENT-BODY\"><TD>";
+
+	$m->comp('/generic/rendercontent.mas', content => $h->{content},
+		 mime => $h->{mime_type}, charset => $h->{charset}, oid => $h->{content_id} );
+
+	print "<HR></TD></TR>\n";
+    }
+</%perl>
+%################################################################
+</TABLE>
+<& /sys/widgets:button, label => 'Add Comment', url => "/generic/add-comment?oid=$oid;fnc=$fnc"  &>
+%################################################################
+<%method header>
+<%args>
+    $wide	=> undef
+    $user
+    $date
+    $title
+    $style	=> ''
+    $contid	=> undef
+</%args>
+<TR CLASS="COMMENT-HEAD<% $style %>"><TD>
+% if( $title ){
+    <B><% $title %></B><BR>
+% }
+    <& /sys/widgets:userlink, oid => $user &><% $wide ? '' : '<BR>' |n%>
+    [<% $date %>]
+% if( $contid ){
+    <& /bkmk/widget.mas, oid => $contid &>
+    <A HREF="/generic/view-content?oid=<% $contid %>" TITLE="view just this" class="logo-button"><&/sys/sym:view&></A>
+    <A HREF="/generic/edit-content?oid=<% $contid %>" TITLE="edit content" class="logo-button"><&/sys/sym:edit&></A>
+% }
+</TD></TR>
+</%method>
+%################################################################
+<%method COMMENTS>
+SELECT content_id, content, mime_type, charset, summary, sortkey,
+    created_user, acl,
+    to_char(COALESCE(modified_date, created_date), 'HH24:MI DD Mon YYYY') AS date
+  FROM mi_content
+    INNER JOIN mi_g_object ON (mi_content.content_id = mi_g_object.g_obj_id)
+    INNER JOIN mi_content_version USING (content_id)
+  WHERE content_type = 'comment'
+    AND status = 'active'
+    AND refers_to = ?
+    AND current_version_p
+  ORDER BY COALESCE(sortkey, '') DESC, COALESCE(modified_date, created_date) DESC
+</%method>

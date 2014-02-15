@@ -1,0 +1,60 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-09 10:31 (EDT)
+%# Function: process edit form and redirect
+%#
+%# $Id: edit-user-1,v 1.8 2010/01/16 03:22:10 jaw Exp $
+
+<%attr>
+    title   => 'Edit User'
+    acl	    => 'user'
+</%attr>
+%################################################################
+<%args>
+    $real
+    $nick
+    $email
+    $home
+    $photo
+    $bio
+</%args>
+%################################################################
+<%init>
+    my $s  = Talmud::sess();
+    my $db = Talmud::db();
+    my $q  = $s->{auth}{uid};
+
+    eval {
+	$db->start();
+
+	$db->update_hash('mi_party', {
+	    email    => ($email || undef),
+	}, [party_id => $q ] );
+
+	$db->update_hash('mi_person', {
+	    realname => ($real  || undef),
+	}, [ person_id => $q ] );
+
+	$db->update_hash('mi_user', {
+	    nickname => ($nick  || undef),
+	    photo_url=> ($photo || undef),
+	    url      => ($home  || undef),
+	    biography=> ($bio   || undef),
+	}, [ user_id => $q ] );
+
+	Talmud::touch_object( $db, $q );
+
+	$db->commit();
+    };
+    if( $@ ){
+	my $emsg = $@;
+	$emsg = $db->error_sanitize( $emsg );
+	$db->rollback();
+	$m->comp('/sys/error.mas', msg => $emsg);
+	return $m->comp( 'edit-user', dfl => \%ARGS );
+    }
+
+    $m->comp('/sys/redirect.mas', where => "/my/view-self");
+
+</%init>

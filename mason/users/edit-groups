@@ -1,0 +1,74 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-09 11:06 (EDT)
+%# Function: edit group
+%#
+%# $Id: edit-groups,v 1.10 2010/01/16 03:22:17 jaw Exp $
+
+<DIV CLASS=CONTEXT>Edit Groups &rarr; <% $real %></DIV>
+<P>
+<FORM METHOD=POST ACTION="edit-groups-1">
+<TABLE>
+    <&/sys/form, dfl => $dfl, err => $err, form => $m->comp( 'SELF:FORM', db => $db ) &>
+</TABLE>
+<INPUT TYPE=HIDDEN NAME=oid VALUE=<% $oid %>>
+</FORM>
+%################################################################
+<%attr>
+    title   => 'Edit User Groups'
+    acl	    => 'acctadmin secadmin :-'
+</%attr>
+%################################################################
+<%args>
+    $oid
+    $dfl => undef
+    $err => undef
+</%args>
+%################################################################
+<%init>
+    my $db = Talmud::db();
+
+    my $real = $db->select_scalar("select realname from mi_site_user where user_id = ?", $oid);
+    unless( $dfl ){
+
+	my @g = $db->select_column("select group_id from mi_group inner join " .
+		"mi_user_group using (group_id) where user_id = ?", $oid);
+
+	foreach my $g (@g){
+		$dfl->{"grp_$g"} = 1;
+	}
+    }
+
+</%init>
+%################################################################
+<%method FORM>
+<%args>
+    $db
+</%args>
+<%perl>
+    my $s  = Talmud::sess();
+
+    my @gl;
+    my $gs = $db->select_all("select group_id, groupname, descr from mi_group order by groupname");
+
+    for my $g (@$gs){
+	# acctadmin can adjust some groups, only secadmin others
+	next if( $g->{groupname} =~ /^(secadmin|acctadmin|secoper|audit)$/ && !$s->{auth}{groups}{secadmin} );
+
+	push @gl, {
+	    type    => 'checkbox',
+	    label   => $g->{groupname},
+	    name    => "grp_$g->{group_id}",
+	    value   => $g->{group_id},
+	    exthint => $g->{descr},
+	}
+    }
+
+    return [
+	@gl,
+	{ type => 'submit',   submit => 'Submit' },
+    ];
+
+</%perl>
+</%method>

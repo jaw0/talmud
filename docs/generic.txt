@@ -1,0 +1,11 @@
+
+overview
+================
+
+generic classes used throughout other areas.
+
+common storage for content, and other data
+
+other applications should make use of its features.
+
+

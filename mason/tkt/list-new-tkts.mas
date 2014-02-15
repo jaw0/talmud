@@ -1,0 +1,52 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-09 11:47 (EDT)
+%# Function: list new tickets
+%#
+%# $Id: list-new-tkts.mas,v 1.12 2010/01/16 03:22:15 jaw Exp $
+
+% while( my $r = $st->fetchrow_hashref ){
+    <A HREF="/tkt/view-tkt?oid=<% $r->{tkt_id} %>"
+      TITLE="#<% $r->{tkt_number} %> @ <% $r->{created} %>"><% $r->{summary} %></A><BR>
+% }
+%################################################################
+<%args>
+    $n
+</%args>
+%################################################################
+<%init>
+    my $s = Talmud::sess();
+    my $uid = $s->{auth}{uid};
+    my $db = Talmud::db();
+    my @bind = ($uid);
+
+    # does user have a pref set?
+    my $pg = $s->{pref}{section};
+    if( $pg ){
+	push @bind, $pg;
+	$pg = "task.refers_to = ?";
+    }else{
+	$pg = 'true';
+    }
+
+    $n += 0;
+    my $stmt = <<EOSQL;
+SELECT tkt_id, summary, tkt_number, to_char(created_date, 'HH24:MI DD Mon') as created
+  FROM mi_ticket
+    INNER JOIN mi_task ON (tkt_id = task_id)
+    INNER JOIN mi_g_object ON (tkt_id = g_obj_id)
+  WHERE merged_into IS NULL
+    AND active_p
+    AND ( owner IS NULL OR owner = ? )
+    -- un-classified, or I have no preference, or my group
+    AND ( task.refers_to = (select section_id from mi_tkt_section where tag = 'UNK')
+            OR $pg )
+  ORDER BY created_date DESC
+  LIMIT $n
+EOSQL
+    ;
+
+    my $st = $db->do($stmt, @bind );
+</%init>
+

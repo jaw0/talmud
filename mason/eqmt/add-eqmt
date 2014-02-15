@@ -1,0 +1,185 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-09 09:20 (EDT)
+%# Function: add new eqmt
+%#
+%# $Id: add-eqmt,v 1.12 2010/08/20 15:42:24 jaw Exp $
+
+<H3>Add Equipment</H3>
+<P>
+<FORM METHOD=POST ACTION="add-eqmt-2">
+<TABLE cellspacing=0>
+<% $form |n%>
+</TABLE>
+</FORM>
+
+<script>
+    var con = <% encode_json($con) |n%>;
+    var pwr = <% encode_json($pwr) |n%>;
+
+    function E(id){ return document.getElementById(id) }
+
+    function update_menu(id, menu){
+        var e = E(id);
+
+        // clear old list
+        e.options.length = 0;
+
+        for(var i in menu){
+            var option       = document.createElement('OPTION');
+            option.value     = menu[i].value;
+            option.text      = menu[i].label;
+            e.appendChild(option);
+        }
+        e.selectedIndex = 0;
+    }
+
+    function change_facility(){
+        var fac = E('fac').value;
+
+        var c = [ { label: '', value: '' } ];
+        var p = [ { label: '', value: '' } ];
+
+        // change con + pwr menus
+        for(var i in con){
+            if( con[i].fac_id == fac ) c.push( { label: con[i].fqdn, value: con[i].eqmt_id } );
+        }
+        for(var i in pwr){
+            if( pwr[i].fac_id == fac ) p.push( { label: pwr[i].fqdn, value: pwr[i].eqmt_id } );
+        }
+
+        update_menu( 'cons', c );
+        update_menu( 'pows', p );
+    }
+
+    E('fac').onchange = change_facility;
+
+    change_facility();
+</script>
+%################################################################
+<%attr>
+	title	=> 'Add Eqmt'
+	acl	=> 'staff'
+</%attr>
+%################################################################
+<%args>
+	$dfl => undef
+	$err => undef
+</%args>
+%################################################################
+<%init>
+	my $db = Talmud::db();
+
+	$dfl->{type} ||= $db->select_scalar("select hw_type_id from mi_hw_type where name = 'unknown'");
+
+	my $form = $m->scomp( '/sys/form',
+		form => $m->comp( 'SELF:form' ),
+		dfl  => $dfl,
+		err  => $err,
+	);
+
+        my $con = $db->select_all("select eqmt_id, fqdn, fac_id from mi_eqmt where hw_type_id = 'ts'");
+        my $pwr = $db->select_all("select eqmt_id, fqdn, fac_id from mi_eqmt where hw_type_id = 'pwr'");
+
+</%init>
+%################################################################
+<%method form>
+<%args>
+	$view	=> undef
+	$post	=> undef
+</%args>
+<%perl>
+	my $db = Talmud::db();
+
+	$view ||= $post;
+
+	my @facs = $view ? () : $db->select_column("select code from mi_facility order by code");
+
+	return [
+{ name => 'fqdn',  label => 'fqdn',    type => 'text', size => 32, maxlen => 64, sqlname => 'fqdn',
+	hint => 'fully qualified domain name' },
+#{ name => 'ip',    label => 'IP Addr', type => 'text', size => 16, maxlen => 64, sqlname => 'ipaddr',
+#	opt => 1, hint => 'primary ip address' },
+#{ name => 'mac',   label => 'MAC Addr', type => 'text', size => 16, maxlen => 64, sqlname => 'mac',
+#	opt => 1, hint => 'primary MAC address' },
+
+{ name => 'import', label => 'Importance', type => 'menu', sqlname => 'import_id', values =>
+  $view ? [] : [ $db->select_column("select name from mi_importance order by sort_value") ],
+	default => 'normal', hint => 'how important is this device' },
+
+{ name => 'status', label => 'Status', type => 'menu', sqlname => 'status_id', values =>
+  $view ? [] : [ $db->select_column("select name from mi_eqmt_status order by name") ], default => 'active' },
+
+# owner
+
+{ name => 'type',  label => 'HW Type', type => 'hash', sqlname => 'hw_type_id', values =>
+  $view ? [] : [ $db->select_2columns("select hw_type_id, name from mi_hw_type order by name") ], },
+
+{ name => 'manu',  label => 'Manufacturer', type => 'menu', sqlname => 'manuf', values =>
+  $view ? [] : [ $db->select_column("select name from mi_manufacturer order by name") ], default =>'unknown' },
+
+{ name => 'model', label => 'HW Model', type => 'text', size => 32, maxlen => 32,  sqlname => 'hw_model', opt => 1 },
+{ name => 'specs', label => 'HW Specs', type => 'text', size => 32, maxlen => 200, sqlname => 'hw_specs',
+	opt => 1, hint => 'eg. memory, disk, processor, etc.' },
+{ name => 'serno', label => 'HW Serial No', type => 'text', size => 32, maxlen => 32, sqlname => 'serialno', opt => 1 },
+
+{ name => 'ht',    label => 'Size',    type => 'hash', sqlname => 'height', default => 1, values =>
+	[ 0 => '0u', 1 => '1u', 2 => '2u', 3 => '3u', 4 => '4u', 5 => '5u', 6 => '6u', 7 => '7u', 8 => '8u',
+	  9 => '9u', 10 => '10u', 11 => '11u', 12 => '12u', 13 => '13u', 14 => '14u', 15 => '15u' ],
+	hint => 'height of device in rack units' },
+
+
+{ name => 'osnm', label => 'OS Name', type => 'menu',  sqlname => 'os_name', opt => 1, values =>
+  $view ? [] : [ '', $db->select_column("select name from mi_operating_system order by name" ) ],
+	default => '' },
+{ name => 'osvr', label => 'OS Ver.',  type => 'text', size => 32, maxlen => 32,  sqlname => 'os_ver', opt => 1 },
+{ name => 'func', label => 'Function', type => 'text', size => 32, maxlen => 200,  sqlname => 'function',
+	opt => 1, hint => 'what does this device do?' },
+
+
+{ name => 'fac',  label => 'Facility', type => 'hash', sqlname => 'fac_id', values =>
+  $view ? {} : { $db->select_2columns("select fac_id, code from mi_facility") }, },
+
+{ name => 'rack', label => 'Rack Number',   type => 'text', size => 32, maxlen => 32, sqlname => 'rack_no',
+	opt => 1, hint => 'the big number written near the top of the rack'  },
+{ name => 'rpos', label => 'Rack Position', type => 'menu', values => [ '', 0 .. 48 ], sqlname => 'rack_pos',
+	opt => 1, hint => 'number of rack units from bottom' },
+
+{ name => 'cons', label => 'Console Device', type => 'hash', sqlname => 'console_dev', values =>
+  $view ? {} : { $db->select_2columns("select eqmt_id, fqdn from mi_eqmt inner join mi_hw_type using (hw_type_id) ".
+	    "where hw_type_id = 'ts'"), '' => '' }, default => '', opt => 1,
+	hint => 'what console server does the console attach to' },
+
+{ name => 'conp', label => 'Console Port', type => 'text', size => 32, maxlen => 32,  sqlname => 'console_port',
+	opt => 1, hint => 'which port on the selected console device' },
+
+{ name => 'pows', label => 'Power Device', type => 'hash', sqlname => 'power_dev', values =>
+  $view ? {} : { $db->select_2columns("select eqmt_id, fqdn from mi_eqmt inner join mi_hw_type using (hw_type_id) ".
+	    "where hw_type_id = 'pwr'"), '' => '' }, default => '',  opt => 1,
+	hint => 'what power strip does the device plug in to' },
+
+{ name => 'powp', label => 'Power Port', type => 'text', size => 32, maxlen => 32,  sqlname => 'power_port',
+	opt => 1, hint => 'which outlet on the selected power device' },
+
+
+{ name => 'install', label => 'Installed', type => 'date', sqlname => 'installed', opt => 1,
+	hint => 'when was the device installed' },
+
+# make the acctng dept happy:
+
+{ name => 'purch',   label => 'Purchased', type => 'date', sqlname => 'purchased', opt => 1,
+	hint => 'when was the device purchased', },
+
+{ name => 'atag',    label => 'Asset Tag', type => 'text', size => 32, maxlen => 32, sqlname => 'asset_tag', opt => 1 },
+{ name => 'vendor',  label => 'Vendor',    type => 'text', size => 32, maxlen => 32, opt => 1 }, # RSN
+{ name => 'pono',    label => 'PO #',      type => 'text', size => 32, maxlen => 32, opt => 1,   # RSN
+	hint => 'Purchase Order Number' },
+
+# RSN warranty info?
+
+
+{ type => 'submit',   submit => 'Save' },
+	];
+</%perl>
+</%method>

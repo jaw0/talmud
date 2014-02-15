@@ -1,0 +1,167 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-17 21:01 (EDT)
+%# Function: view a circuit
+%#
+%# $Id: view-ckt,v 1.11 2010/08/29 14:45:01 jaw Exp $
+%# XXX - data escaping
+
+<DIV CLASS=CONTEXT><A HREF="/">Home</A> &rarr; <A HREF="list-ckts">Circuit</A> &rarr; <% $ckt->{name} %></DIV>
+<P>
+
+<TABLE><TR><TD>
+
+  <TABLE CLASS="CKT-DATA" CELLSPACING=0>
+  <TR><TD>
+  <TABLE><% $cktdata |n%></TABLE>
+  </TD></TR>
+  <TR><TD><HR></TD></TR>
+  <TR><TD>
+    <TABLE CLASS="CKT-END"><TR><TD VALIGN=TOP>
+    <B>A</B><BR>
+    <TABLE CLASS="CKT-PLAIN"><% $eadata |n%></TABLE>
+    </TD>
+    <TD VALIGN=TOP WIDTH=1 CLASS=VERTLINE><BR></TD>
+    <TD VALIGN=TOP>
+    <B>Z</B><BR>
+    <TABLE CLASS="CKT-PLAIN"><% $ezdata |n%></TABLE>
+    </TD></TR>
+    </TD></TR></TABLE>
+  </TD></TR>
+
+  <TR><TD><HR></TD></TR>
+
+  <TR><TD><TABLE><% $wiredata |n%></TABLE></TD></TR>
+
+  <TR><TD>&nbsp;<P></TD></TR>
+
+  </TABLE>
+
+</TD>
+<TD VALIGN=TOP WIDTH=1 CLASS=VERTLINE><BR></TD>
+<TD VALIGN=TOP CLASS="RELATED-COL">
+
+<&/bkmk/widget.mas, oid => $oid &>
+<A HREF="/ckt/edit-ckt?oid=<% $oid %>" TITLE="edit" class="logo-button"><&/sys/sym:edit&></A>
+<A HREF="/generic/add-comment?oid=<% $oid %>;fnc=/ckt/view-ckt" TITLE="add comment" class="logo-button"><&/sys/sym:comment&></A>
+<BR><BR>
+<B>Related Items</B><BR>
+
+<FORM ACTION="attach-ckt">
+  <INPUT TYPE=HIDDEN NAME=oid VALUE=<% $oid %>>
+  <TABLE CELLSPACING=0 CELLPADDING=0><TR>
+  <TD><INPUT TYPE=TEXT NAME=att SIZE=12 MAXLENGTH=32></TD>
+  <TD><INPUT TYPE=SUBMIT NAME="Attach" Value="Attach"></TD>
+</TR></TABLE></FORM>
+
+<& /generic/related.mas, oid => $oid &>
+
+<TD VALIGN=TOP WIDTH=1 CLASS=VERTLINE><BR></TD>
+<TD VALIGN=TOP CLASS="COMMENT-COL">
+
+<B>Comments</B><BR>
+<& /generic/comments.mas, oid => $oid, fnc => '/ckt/view-ckt', wide => 0 &>
+
+</TD></TR>
+</TABLE>
+
+%################################################################
+<%attr>
+    title   => 'View Circuit'
+    acl	    => 'staff :r'
+</%attr>
+%################################################################
+<%args>
+    $oid
+</%args>
+%################################################################
+<%init>
+    my $db = Talmud::db();
+    my( $cktdata, $eadata, $ezdata, $wiredata );
+
+
+    my $ckt = $db->select_1hashref(
+	"select mi_circuit.*, to_char(installed, 'DD Mon YYYY') as install, ".
+	" mi_object_name(circuit_id, false) as name, ".
+	" created_user, acl ".
+	" from mi_circuit inner join mi_g_object on(circuit_id = g_obj_id) where circuit_id = ?",
+	$oid );
+
+    my $ea  = $db->select_1hashref(
+	"select mi_ckt_end.*, mi_object_name(router, false) as routername from mi_ckt_end ".
+	" inner join mi_circuit on (ckt_end_id = a_end) where circuit_id = ?", $oid );
+
+    my $ez  = $db->select_1hashref(
+	"select mi_ckt_end.*, mi_object_name(router, false) as routername from mi_ckt_end ".
+	" inner join mi_circuit on (ckt_end_id = z_end) where circuit_id = ?", $oid );
+
+    # fix up
+    $ckt->{dlr_on_file} = $ckt->{dlr_on_file} ? 'yes' : undef;
+    $ea->{location}     =~ s/\n/<BR>/g;
+    $ez->{location}     =~ s/\n/<BR>/g;
+
+    # check write permission
+    my $neditp = $m->comp('/sys/chkacl.mas',
+	db	=> $db,
+	owner => $ckt->{created_user},
+	oacl  => $ckt->{acl},
+	acl   => ':w' );
+
+
+    # top level circuit data
+    my @ckl = (
+	status		=> 'Status',
+	telco		=> 'Primary Telco',
+	phys_type	=> 'Physical Type',
+	srvc_type	=> 'Service Type',
+	encap		=> 'Encap',
+	install		=> 'Install',
+	order_no	=> 'Order No.',
+	dlr_on_file	=> 'DLR on file',
+    );
+
+    while( my $k = shift @ckl ){
+	my $label = shift @ckl;
+	my $v = $ckt->{$k};
+	next unless $v;
+	$cktdata .= "<TR><TD><B>$label</B></TD><TD>$v</TD></TR>\n";
+    }
+
+    $cktdata .= "<TR><TD></TD><TD><A HREF=\"edit-ckt?oid=$oid\">[edit]</A></TD></TR>\n"
+	unless $neditp;
+
+	# the 2 ends
+	foreach my $k (sort keys %$ea){
+		next if $k =~ /ckt_end_id|routername/;
+		my $v = $ea->{$k};
+		next unless $v;
+		$v = "<A HREF=\"/eqmt/view-eqmt?oid=$v\">$ea->{routername}</A>" if $k eq 'router';		
+		$eadata .= "<TR><TD><B>$k</B></TD><TD>$v</TD></TR>\n";
+	}
+	$eadata .= "<TR><TD></TD><TD><A HREF=\"edit-end?oid=$ea->{ckt_end_id}\">[edit]</A></TD></TR>\n"
+		unless $neditp;
+
+	foreach my $k (sort keys %$ez){
+		next if $k =~ /ckt_end_id|routername/;
+		my $v = $ez->{$k};
+		next unless $v;
+		$v = "<A HREF=\"/eqmt/view-eqmt?oid=$v\">$ez->{routername}</A>" if $k eq 'router';		
+		$ezdata .= "<TR><TD><B>$k</B></TD><TD>$v</TD></TR>\n";
+	}
+	$ezdata .= "<TR><TD></TD><TD><A HREF=\"edit-end?oid=$ez->{ckt_end_id}\">[edit]</A></TD></TR>\n"
+		unless $neditp;
+
+	# wire circuit id data
+	my $w = $db->do("select * from mi_ckt_wire inner join mi_g_object on (g_obj_id = wire_id) ".
+		"where circuit_id = ? order by created_date", $oid );
+
+	while( my $wd = $w->fetchrow_hashref() ){
+		$wiredata .= "<TR><TD>" .
+			"<B>Circuit ID:</B></TD><TD> $wd->{id} </TD><TD> - $wd->{telco} </TD><TD>" .
+			"<A HREF=\"edit-wire?oid=$wd->{wire_id}\">[edit]</A></TD></TR>\n";
+	}
+	$wiredata .= "<TR><TD>&nbsp</TD><TD><A HREF=\"add-wire?oid=$oid\">[add]</A></TD></TR>\n"
+		unless $neditp;
+
+</%init>

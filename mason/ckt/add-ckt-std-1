@@ -1,0 +1,95 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-17 18:52 (EDT)
+%# Function: process add form and redirect
+%#
+%# $Id: add-ckt-std-1,v 1.11 2010/08/21 16:06:53 jaw Exp $
+
+<%attr>
+    title	=> 'Add Ckt'
+	acl	=> 'staff'
+</%attr>
+%################################################################
+<%args>
+
+</%args>
+%################################################################
+<%init>
+    my $db  = Talmud::db();
+    my $s   = Talmud::sess();
+    my $cid = Talmud::g_obj_next_id($db);
+
+    my $form = $m->comp('add-ckt-std:FORM');
+
+    $m->comp('/sys/form:fixup', form => $form, args => \%ARGS);
+    # my $err = $m->comp('/sys/form:validate', form => $form, args => \%ARGS);
+    # return $m->comp( 'add-ckt-std', err => $err, dfl => \%ARGS ) if $err;
+
+    eval {
+	$db->start();
+	# start creating ckt
+	Talmud::create_object( $db, 'ckt/circuit', $cid );
+
+	# create ends
+	my $ea = Talmud::create_object( $db, 'ckt/end' );
+	my $ez = Talmud::create_object( $db, 'ckt/end' );
+
+	$db->insert_hash('mi_ckt_end', {
+		ckt_end_id	=> $ea,
+		location	=> $ARGS{loc_a} || undef,
+		router		=> $ARGS{rtr_a} || undef,
+		interface	=> $ARGS{int_a} || undef,
+	} );
+
+	$db->insert_hash( 'mi_ckt_end', {
+		ckt_end_id	=> $ez,
+		location	=> $ARGS{loc_z} || undef,
+		router		=> $ARGS{rtr_z} || undef,
+		interface	=> $ARGS{int_z} || undef,
+	} );
+
+	# finish creating ckt
+	$db->insert_hash( 'mi_circuit', {
+		circuit_id	=> $cid,
+		a_end		=> $ea,
+		z_end		=> $ez,
+		telco		=> $ARGS{telco}  || undef,
+		phys_type	=> $ARGS{phys}   || undef,
+		srvc_type	=> 'straight',
+		status		=> $ARGS{status} || undef,
+		encap		=> $ARGS{encap}  || undef,
+		dlr_on_file	=> $ARGS{dlrp},
+		order_no	=> $ARGS{order}  || undef,
+	} );
+
+	# create wires
+	my $w = Talmud::create_object( $db, 'ckt/wire' );
+	$db->insert_hash( 'mi_ckt_wire', {
+		wire_id		=> $w,
+		circuit_id	=> $cid,
+		telco		=> $ARGS{telco} || undef,
+		id		=> $ARGS{id}    || undef,
+	} );
+
+	# add contact
+	if( $ARGS{contact} ){
+                my $aid = Talmud::g_obj_next_id($db);
+		$db->select_scalar(
+		"select mi_g_obj_rel__new(?, ?, NULL, 'ckt/ckt/attach', ?, ?)",
+		$aid, $s->{auth}{uid}, $cid, $ARGS{contact} );
+	}
+
+	$db->commit();
+    };
+
+    if( $@ ){
+	my $emsg = $@;
+	$emsg = $db->error_sanitize( $emsg );
+	$db->rollback();
+	$m->comp('/sys/error.mas', msg => $emsg);
+	return $m->comp( 'add-ckt-std', dfl => \%ARGS );
+    }
+
+    $m->comp('/sys/redirect.mas', where => "/ckt/view-ckt?oid=$cid" );
+</%init>

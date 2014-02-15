@@ -1,0 +1,304 @@
+/*
+  Copyright (c) 2010 by Jeff Weisberg
+  Author: Jeff Weisberg <jaw @ tcp4me.com>
+  Created: 2010-Aug-22 00:00 (EDT)
+  Function: style sheet
+
+  $Id: style.css,v 1.12 2010/08/29 17:21:25 jaw Exp $
+*/
+
+/* site wide items */
+
+    body {
+    	background-color:       #fff;
+    }
+
+    tr.comment-head-p {
+    	/* high priority comment header */
+    	background-color:       #fdd;
+    }
+    tr.comment-head {
+    	/* normal comment header */
+    	background-color:        #ddf;
+    }
+
+    tr.comment-head td {
+    	border-top-right-radius:           	14px;
+    	-webkit-border-top-right-radius:   	14px;
+    	-moz-border-radius-topright:       	14px;
+    }
+
+    div.box {
+    	border: 				solid thin #000;
+        width: 					100%;
+    	border-bottom-right-radius:             10px;
+    	-webkit-border-bottom-right-radius:     10px;
+    	-moz-border-radius-bottomright:         10px;
+    }
+
+    .content-head {
+        background-color: 	#ddf;
+        min-width:		400px;
+    }
+
+    acronym, abbr {
+    	border-bottom: 		1px dotted #666;
+    	cursor: 		help;
+    }
+
+    a.button {
+    	color:			#000;
+    	background-color:	#bbb;
+    	font-family:		sans-serif;
+    	font-size:		smaller;
+    	display:		block;
+    	width:			150;
+    	text-align:		center;
+    	padding-top:		.15em;
+    	padding-bottom:		.15em;
+        border:			2px outset #bbb;
+    }
+
+    a.button:hover {
+    	border-color:		#00b;
+    }
+
+    a.button:active {
+    	border-style:		inset;
+    }
+
+    a.button:visited {
+    	color:			#000;
+    }
+
+    /****************************************************************/
+    /* nav bar */
+
+    .navbar td a {
+        font-family: 		sans-serif;
+    }
+    .navbar td a.plain {
+    	font-weight: 		normal;
+    	font-family: 		monospaced;
+    	background-color: 	#ddf;
+    }
+
+    .navbar td {
+    	background-color: 	#ddf;
+    }
+    .navcenter {
+    	background-color: 	#ddf;
+    }
+    td.navlogo, td.navright {
+    	background-color: 	#ddd;
+    }
+    .navfooter {
+        position:		fixed;
+        bottom:         	0px;
+        width:          	97%;
+        padding:		5px;
+        margin:         	0px;
+        background-color: 	#ddd;
+        border-bottom:		5px solid #fff;
+        padding-bottom:		0;
+        font-size:		14px;
+        font-family:		fantasy;
+    }
+    .navfooter a {
+        color:          	#000;
+    }
+
+    td.search {
+    	font-size:      	xx-small;
+    }
+
+    td.search input {
+    	margin:			0px;
+    	font-size:      	x-small;
+    }
+
+    .search form {
+    	margin:			2px;
+    }
+
+    /****************************************************************/
+    /* sub section nav bar */
+    .subnav {
+    	background-color: 	#ddd;
+    }
+    .subnav a {
+        font-family: 		sans-serif;
+        font-weight: 		bold;
+    }
+
+    /****************************************************************/
+    /* context bar */
+    .context {
+        font-family:    	sans-serif;
+    	font-size:      	small;
+    }
+
+    /****************************************************************/
+
+    td.vertline {
+    	background-color:	#ddd;
+    }
+
+    /****************************************************************/
+    /* forms */
+    .input-required {
+        color:                  #a22;
+    }
+    .input-optional {
+        color:                  #888;
+    }
+    .input-error {
+        background-color:	#f88;
+    }
+
+    /****************************************************************/
+    /* sortable tables */
+    .sortable thead tr {
+        font-family:            sans-serif;
+        background-color:       #ddf;
+    }
+    .sortable thead tr td {
+        border-top:     	2px solid #fff;
+        border-bottom:  	2px solid #fff;
+        border-left:    	1px solid #fff;
+        border-right:   	1px solid #fff;
+    }
+
+    .sort-up {
+        border-top:     	2px solid #000 !important;
+        border-bottom:  	2px solid #eef !important;
+        border-left:    	1px solid #000 !important;
+        border-right:   	1px solid #000 !important;
+        background-color:   	#eef;
+    }
+    .sort-dn {
+        border-bottom:  	2px solid #000 !important;
+        border-top:     	2px solid #eef !important;
+        border-left:    	1px solid #000 !important;
+        border-right:   	1px solid #000 !important;
+        background-color:   	#eef;
+    }
+
+    .evenrow {
+    	background-color: 	#ddd;
+    }
+    .oddrow {
+
+    }
+
+    .oddrow td {
+        border-left:    	1px dotted #ddd;
+        border-right:   	1px dotted #ddd;
+
+    }
+    .evenrow td {
+        /* not visible, but keeps the alignment */
+        border-left:    	1px dotted #ddd;
+        border-right:   	1px dotted #ddd;
+    }
+
+    /****************************************************************/
+    /* bookmarks */
+    .bookmark-no {
+        font-size:		20px;
+        color:			#aaa;
+        text-decoration: 	none;
+    }
+    .bookmark-yes {
+        font-size:		20px;
+        color:			#d8d;
+        text-decoration: 	none;
+    }
+
+    /****************************************************************/
+    /* logo button dingbats */
+    .logo-button {
+        font-size:		20px;
+        padding:		2px;
+        text-decoration: 	none;
+    }
+
+    /****************************************************************/
+
+    /* tkt system */
+
+    table.tktlist td {
+    	font-size: 		small;
+    }
+
+    table.tkt-closed {
+    	background-color: 	#ddd;
+    }
+
+    table.tkt-dead {
+    	background-color: 	#844;
+    }
+
+    tr.tkt-event-head {
+    	background-color:	#ddf;
+    }
+
+    tr.tkt-event-detail {
+    	background-color:	#ddf;
+    }
+
+    .tktlistsubject {
+        padding-left:    	10px;
+        padding-right:   	10px;
+        font-size:       	15px !important;
+        font-weight:     	bold;
+        font-family:     	sans-serif;
+    }
+
+    .tktlistnumber {
+        font-size:       	15px !important;
+        font-weight:     	bold;
+        font-family:     	sans-serif;
+    }
+
+    /****************************************************************/
+    /* circuit section */
+
+    table.ckt-end td {
+    	font-size:		small;
+    }
+
+    /****************************************************************/
+    /* documents */
+
+    .doc-content {
+    	font-size:		small;
+    }
+
+    .doc-hdr {
+    	background:		#ddf;
+    }
+    .doc-hdr h2 {
+    	margin-top:     	0em;
+    	margin-bottom:  	0em;
+    }
+
+    /****************************************************************/
+    /* ipdb */
+
+    .ipdb-list a {
+    	color:			#000;
+    }
+
+    tr.ipdb-view-head {
+    	background-color: 	#ddf;
+    }
+
+    /****************************************************************/
+    /* eqmt */
+
+    .eqmt-list td {
+        font-size:      	small;
+    }
+
+

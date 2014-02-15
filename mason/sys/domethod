@@ -1,0 +1,45 @@
+%# -*- mason -*-
+%# Copyright (c) 2007 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Created: 2007-Apr-23 17:23 (EDT)
+%# Function: 
+%#
+%# $Id: domethod,v 1.1 2010/08/17 14:48:02 jaw Exp $
+
+<%args>
+    $error	=> undef
+    $method
+    $args
+</%args>
+%################################################################
+<%init>
+
+    my $res;
+    eval {
+	$res = $m->comp("/rest/$method", %$args );
+    };
+    if( my $e = $@ ){
+	my($msg, $err);
+	if( ref($e) && ! $e->isa('HTML::Mason::Exception') ){
+	    $msg = $e->{errormsg};
+	    $err = $e;
+	}else{
+	    $msg = $e;
+	}
+
+	# RSN - send mail
+	print STDERR "ERROR: $method => $msg ($e) ", ref($e), "\n";
+
+	if( $error ){
+	    $m->comp('/sys/error.mas', msg => $msg) if $msg;
+	    $m->comp( @$error, err => $err, dfl => \%ARGS );
+	    $m->abort(200);
+	}else{
+	    $msg ||= 'method failed';
+	    $m->comp('/error', msg => $msg);
+	}
+    }
+
+    return $res;
+
+</%init>

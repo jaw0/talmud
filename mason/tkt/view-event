@@ -1,0 +1,31 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-09 12:01 (EDT)
+%# Function: redirect view event to view ticket
+%#
+%# $Id: view-event,v 1.8 2010/01/16 03:22:16 jaw Exp $
+
+<%attr>
+    title   => 'View Ticket'
+    acl	    => undef
+</%attr>
+%################################################################
+<%args>
+    $oid
+</%args>
+%################################################################
+<%init>
+    my $db = Talmud::db();
+
+    my $no = $db->select_scalar($m->scomp('SELF:TID'), $oid);
+
+    $m->comp('/sys/redirect.mas', where => "/tkt/view-tkt?oid=$no" );
+
+</%init>
+%################################################################
+<%method TID>
+select tkt_id from mi_tkt_event
+    inner join mi_ticket using (tkt_id)
+  where event_id = ?
+</%method>

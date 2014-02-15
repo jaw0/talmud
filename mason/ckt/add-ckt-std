@@ -1,0 +1,93 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-14 15:36 (EDT)
+%# Function: add a standard point-to-point ckt
+%#
+%# $Id: add-ckt-std,v 1.11 2010/01/16 05:35:10 jaw Exp $
+%#
+%# => one wire, 2 ends
+
+<P>
+<FORM METHOD=POST ACTION="add-ckt-std-1">
+<TABLE>
+  <&/sys/form, dfl => $dfl, err => $err, form => $m->comp('SELF:FORM', db => $db) &>
+</TABLE>
+</FORM>
+%################################################################
+<%attr>
+    title   => 'Add Circuit'
+    acl	    => 'staff'
+</%attr>
+%################################################################
+<%args>
+    $dfl => undef
+    $err => undef
+</%args>
+%################################################################
+<%init>
+    my $db = Talmud::db();
+</%init>
+%################################################################
+<%method FORM>
+<%args>
+    $db	=> undef
+</%args>
+<%perl>
+    my(@phys, @srvc, @rtrs, @telco);
+
+    if( $db ){
+	@phys = $db->select_column("select name from mi_ckt_phys order by sort_value" );
+	@srvc = $db->select_column("select name from mi_ckt_srvc order by sort_value" );
+
+	@rtrs = $db->select_2columns(
+	    "select eqmt_id, fqdn from mi_eqmt inner join mi_hw_type using (hw_type_id) ".
+	    "where hw_type_id = 'gw' order by fqdn");
+
+	@telco = $db->select_2columns(
+	    "select person_id, realname from mi_person where category = 'telco' ".
+	    "order by realname" );
+    }
+
+    return [
+# ckt, wire data
+
+{ name => 'telco',  label => 'Telco Name',      type => 'text', size => 32, maxlen => 64, },
+{ name => 'contact',label => 'Problem Contact', type => 'hash', values => [ '' => '', @telco ] },
+{ name => 'id',     label => 'Circuit ID', type => 'text', size => 32, maxlen => 64, },
+
+{ name => 'status', label => 'Status',     type => 'menu', values => ['pending', 'active', 'terminated'] },
+{ name => 'encap',  label => 'Encap',      type => 'menu', values => ['ppp', 'hdlc', '' ], default => 'ppp' },
+{ name => 'phys',   label => 'Physical Ckt', type => 'menu', values => \@phys, default => 'T1' },
+{ name => 'order',  label => 'Order No.',  type => 'text', size => 32, maxlen => 64, },
+{ name => 'dlrp',   label => 'DLR on File', type => 'bool', default => 'no' },
+
+# RSN - installed
+
+
+{ type => 'table', how => '[', border => 0 },
+
+# A end
+{ name => 'a', label => '',  type => 'ro', default => 'A' },
+{ name => 'rtr_a',  label => 'router',     type => 'hash', values => [ '' => '', @rtrs ] },
+{ name => 'int_a',  label => 'interface',  type => 'text', size => 32, maxlen => 32, },
+{ name => 'loc_a',  label => 'location',   type => 'box',  ht => 5, wid => 29 },
+
+
+{ type => 'table', how => '][' },
+
+# Z end
+{ name => 'a', label => '',  type => 'ro', default => 'Z' },
+{ name => 'rtr_z',  label => 'router',     type => 'hash', values => [ '' => '', @rtrs ] },
+{ name => 'int_z',  label => 'interface',  type => 'text', size => 32, maxlen => 32, },
+{ name => 'loc_z',  label => 'location',   type => 'box',  ht => 5, wid => 29 },
+
+
+{ type => 'table', how => ']' },
+
+
+# ...
+{ type => 'submit',   submit => 'Submit' },
+    ];
+</%perl>
+</%method>

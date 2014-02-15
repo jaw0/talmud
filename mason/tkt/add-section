@@ -1,0 +1,34 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-09 11:28 (EDT)
+%# Function: add new section
+%#
+%# $Id: add-section,v 1.6 2010/01/15 18:13:12 jaw Exp $
+
+<FORM METHOD=POST ACTION="add-section-1">
+<TABLE>
+  <& /sys/form, dfl => $dfl, err => $err, form => $m->comp('SELF:FORM') &>
+</TABLE>
+</FORM>
+%################################################################
+<%attr>
+    title => 'Add New Section'
+    acl   => 'tktadmin'
+</%attr>
+%################################################################
+<%args>
+    $dfl => undef
+    $err => undef
+</%args>
+%################################################################
+<%method FORM>
+<%perl>
+    return [
+{ name => 'name',   label => 'Section Name', type => 'text', size => 32, maxlen => 32, sqlname => 'name' },
+{ name => 'tag',    label => 'Short Tag', type => 'text', size => 8, maxlen => 8, sqlname => 'tag' },
+{ name => 'mail',   label => 'Mail From', type => 'text', size => 32, maxlen => 200, sqlname => 'mail_from' },
+{ type => 'submit',   submit => 'Submit' },
+    ];
+</%perl>
+</%method>

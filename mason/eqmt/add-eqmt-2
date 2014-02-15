@@ -1,0 +1,60 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-Oct-09 09:22 (EDT)
+%# Function: process add eqmt form and redirect
+%#
+%# $Id: add-eqmt-2,v 1.9 2010/08/20 04:20:53 jaw Exp $
+
+<%attr>
+	title	=> 'Add Eqmt'
+	acl	=> 'staff'
+</%attr>
+%################################################################
+<%args>
+	$fac
+</%args>
+%################################################################
+<%init>
+	my $db  = Talmud::db();
+	my $s   = Talmud::sess();
+	my $eid = Talmud::g_obj_next_id($db);
+
+	my $f0 = $m->comp('add-eqmt:form');
+	# my $f1 = $m->comp('add-eqmt-1:form', fac => $fac);
+	my $form = $f0;
+
+	$m->comp('/sys/form:fixup', form => $form, args => \%ARGS);
+	my $err = $m->comp('/sys/form:validate', form => $form, args => \%ARGS);
+
+	if( $err ){
+		return $m->comp( 'add-eqmt-1', err => $err, dfl => \%ARGS );
+    	}
+
+	eval {
+		$db->start();
+		my $data = $m->comp('/sys/form:sql_from_form',
+			form   => $form,
+			args   => \%ARGS,
+			sqlcol => 'sqlname',
+		);
+
+		$data->{ eqmt_id } = $eid;
+
+		Talmud::create_object( $db, 'eqmt/eqmt', $eid );
+
+		$db->insert_hash('mi_eqmt', $data );
+
+		$db->commit();
+	};
+
+    	if( $@ ){
+    	     my $emsg = $@;
+    	     $emsg = $db->error_sanitize( $emsg );
+    	     $db->rollback();
+    	     $m->comp('/sys/error.mas', msg => $emsg);
+    	     return $m->comp( 'add-eqmt-1', eid => $eid, fac => $fac, dfl => \%ARGS );
+    	}
+    
+	$m->comp('/sys/redirect.mas', where => "/eqmt/view-eqmt?oid=$eid" );
+</%init>

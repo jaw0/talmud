@@ -1,0 +1,20 @@
+%# -*- mason -*-
+%# Copyright (c) 2010 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Created: 2010-Aug-29 10:57 (EDT)
+%# Function: only display sections that are enabled
+%#
+%# $Id: confsection,v 1.1 2010/08/29 15:06:40 jaw Exp $
+
+<%args>
+    $content	=> $m->content
+</%args>
+% for my $l (split /\n/, $content){
+%  my($sect) = $l =~ /SECTION=(\S+)/;
+%  next if $sect && ! $config->{"sect_$sect"};
+%  $l =~ s/SECTION=(\S+)//;
+<% $l |n%>
+% }
+<%init>
+    my $config = Talmud::config();
+</%init>

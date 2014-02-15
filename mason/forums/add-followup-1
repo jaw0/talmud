@@ -1,0 +1,63 @@
+ %# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-May-07 15:45 (EDT)
+%# Function: add comment and redirect
+%#
+%# $Id: add-followup-1,v 1.10 2010/08/29 17:21:25 jaw Exp $
+%#
+
+<%attr>
+    title   => 'Add Followup'
+    acl	    => 'user :c'
+</%attr>
+%################################################################
+<%args>
+    $oid
+    $format
+    $content
+    $summary
+</%args>
+%################################################################
+<%init>
+
+    my $s   = Talmud::sess();
+    my $db  = Talmud::db();
+    my $cid = Talmud::g_obj_next_id($db);
+
+    $format = 'plain' if $format eq 'text';
+
+    eval{
+	$db->start();
+	Talmud::create_object($db, 'forums/a', $cid, undef, $oid);
+
+        $db->insert_hash('mi_content', {
+	    content_id	 => $cid,
+	    content_type => 'forums',
+	    mime_type	 => "text/$format",
+	} );
+
+	$db->insert_hash('mi_content_version', {
+	    content_id	=> $cid,
+	    version_id  => Talmud::create_object($db, 'generic/version'),
+	    content	=> $content,
+	    summary	=> $summary,
+	} );
+
+        # notify watchers of the question
+        Talmud::notify_watchers( $db, $oid, $s->{auth}{uid}, $summary );
+
+	$db->commit();
+    };
+    if( $@ ){
+	my $emsg = $@;
+	$emsg = $db->error_sanitize( $emsg );
+	$db->rollback();
+	$m->comp('/sys/error.mas', msg => $emsg);
+	return $m->comp( 'add-followup', oid => $oid, dfl => \%ARGS );
+    }
+
+    # view original object
+    $m->comp('/sys/redirect.mas', where => "/forums/view-thread?oid=$oid" );
+
+</%init>

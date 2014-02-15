@@ -1,0 +1,67 @@
+%# -*- mason -*-
+%# Copyright (c) 2003 by Jeff Weisberg
+%# Author: Jeff Weisberg <jaw @ tcp4me.com>
+%# Date: 2003-May-07 15:45 (EDT)
+%# Function: add comment and redirect
+%#
+%# $Id: add-comment-1,v 1.11 2010/08/21 20:18:30 jaw Exp $
+%#
+
+<%attr>
+    title   => 'Add Comment'
+    acl	    => 'user :c'
+</%attr>
+%################################################################
+<%args>
+    $oid
+    $fnc	=> '/generic/view'
+    $sortkey
+    $format
+    $content
+    $summary
+</%args>
+%################################################################
+<%init>
+
+    my $s   = Talmud::sess();
+    my $db  = Talmud::db();
+    my $cid = Talmud::g_obj_next_id($db);
+
+    $format = 'plain' if $format eq 'text';
+    $sortkey = $sortkey eq 'high' ? 100 : 0;
+
+    eval{
+	$db->start();
+
+	Talmud::create_object($db, 'generic/content', $cid, undef, $oid);
+
+        $db->insert_hash( 'mi_content', {
+	    content_id	 => $cid,
+	    content_type => 'comment',
+	    mime_type	 => "text/$format",
+	    sortkey      => $sortkey,
+	} );
+
+	$db->insert_hash( 'mi_content_version', {
+	    content_id	=> $cid,
+	    version_id  => Talmud::create_object($db, 'generic/version'),
+	    content	=> $content,
+	    summary	=> $summary,
+	} );
+
+        Talmud::notify_watchers( $db, $oid, $s->{auth}{uid}, "added comment: $summary\n$content" );
+
+	$db->commit();
+    };
+    if( $@ ){
+	my $emsg = $@;
+	$emsg = $db->error_sanitize( $emsg );
+	$db->rollback();
+	$m->comp('/sys/error.mas', msg => $emsg);
+	return $m->comp( 'add-comment', oid => $oid, fnc => $fnc, dfl => \%ARGS );
+    }
+
+    # view original object
+    $m->comp('/sys/redirect.mas', where => "$fnc?oid=$oid" );
+
+</%init>
